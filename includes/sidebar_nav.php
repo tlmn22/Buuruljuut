@@ -160,6 +160,53 @@
         </div>
     </div>
 
+    <!-- Тээврийн захиалга групп -->
+    <?php
+    $myEmpIdForTransport = (int)($_SESSION['user_id'] ?? 0);
+    $transportCanReview = $myEmpIdForTransport && (
+        transportHasRole(getDB(), $myEmpIdForTransport, 'director')
+        || transportHasRole(getDB(), $myEmpIdForTransport, 'transport_manager')
+        || transportIsAnyonesManager(getDB(), $myEmpIdForTransport)
+        || isHR() || isSuperAdmin()
+    );
+    $transportCanMerge = $myEmpIdForTransport && (transportHasRole(getDB(), $myEmpIdForTransport, 'transport_manager') || isSuperAdmin());
+    $transportOpen = inGroup(['transport', 'transport-approvals', 'transport-merge', 'transport-admin']);
+    ?>
+    <div class="menu-group">
+        <button onclick="toggleGroup(this)"
+            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $transportOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3">
+                <span class="material-icons-outlined">local_shipping</span>
+                <span>Тээврийн захиалга</span>
+            </div>
+            <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $transportOpen ? 'rotate-180' : '' ?>">expand_more</span>
+        </button>
+        <div class="accordion-items pl-4 mt-1 space-y-1 <?= $transportOpen ? '' : 'hidden' ?>">
+            <a href="<?= BASE_URL ?>/modules/transport/index.php"
+                class="flex items-center gap-3 px-4 py-2.5 <?= ac('transport') ?> rounded-lg transition-colors text-sm">
+                <span class="material-icons-outlined text-base">assignment</span>Миний захиалгууд
+            </a>
+            <?php if ($transportCanReview): ?>
+            <a href="<?= BASE_URL ?>/modules/transport/approvals.php"
+                class="flex items-center gap-3 px-4 py-2.5 <?= ac('transport-approvals') ?> rounded-lg transition-colors text-sm">
+                <span class="material-icons-outlined text-base">fact_check</span>Батлах хүсэлтүүд
+            </a>
+            <?php endif; ?>
+            <?php if ($transportCanMerge): ?>
+            <a href="<?= BASE_URL ?>/modules/transport/merge.php"
+                class="flex items-center gap-3 px-4 py-2.5 <?= ac('transport-merge') ?> rounded-lg transition-colors text-sm">
+                <span class="material-icons-outlined text-base">call_merge</span>Тээвэр захиалга
+            </a>
+            <?php endif; ?>
+            <?php if (isSuperAdmin()): ?>
+            <a href="<?= BASE_URL ?>/modules/transport/admin.php"
+                class="flex items-center gap-3 px-4 py-2.5 <?= ac('transport-admin') ?> rounded-lg transition-colors text-sm">
+                <span class="material-icons-outlined text-base">tune</span>Тохиргоо
+            </a>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- Удирдлага групп (зөвхөн superadmin) -->
     <?php if (isSuperAdmin()): ?>
     <?php $adminOpen = inGroup(['org_units', 'employees']); ?>
