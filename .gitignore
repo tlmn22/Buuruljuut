@@ -4,6 +4,7 @@ uploads/
 # Жинхэнэ DB dump-ууд (ажилтны нэр, регистрийн дугаар, нууц үгийн hash г.м. агуулна)
 import.sql
 intranet.sql
+buuruljuut.sql
 
 # Excel эх файлууд (магадгүй бодит ажилтны/цалингийн өгөгдөлтэй)
 *.xlsx

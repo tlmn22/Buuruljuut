@@ -45,7 +45,8 @@ if ($selectedPeriodId) {
 
     $baseSql = "
         SELECT e.id as employee_id, e.employee_code, e.last_name, e.first_name, e.position, e.org_unit_id,
-               ev.id as eval_id, ev.status, ev.planning_submitted_at, ev.final_total_score, ev.evaluator_id
+               ev.id as eval_id, ev.status, ev.planning_submitted_at, ev.final_total_score, ev.evaluator_id,
+               ev.created_at as ev_created_at, ev.approved_at, ev.self_submitted_at, ev.manager_submitted_at
         FROM employees e
         LEFT JOIN kpi2_evaluations ev ON ev.employee_id = e.id AND ev.period_id = ?
         WHERE e.is_active = 1" . $whereScope . " AND e.id != ?
@@ -54,6 +55,53 @@ if ($selectedPeriodId) {
     $stmt = $pdo->prepare($baseSql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
+}
+
+/**
+ * DB-ийн төлөвийг загварын төлөв рүү хөрвүүлнэ:
+ * none / plan / approve / self-eval / mgr-eval / done.
+ * ("returned" — буцаагдсаныг DB тусад нь хадгалдаггүй тул plan-аар харагдана.)
+ */
+function kpi2TeamState(array $r): string {
+    if (!$r['eval_id']) return 'none';
+    switch ($r['status']) {
+        case 'planning':          return $r['planning_submitted_at'] ? 'approve' : 'plan';
+        case 'planning_approved': return 'self-eval';
+        case 'self_evaluated':    return 'mgr-eval';
+        case 'completed':         return 'done';
+    }
+    return 'none';
+}
+
+/** Одоогийн алхам хэзээ эхэлснээс хойш өнгөрсөн бүтэн хоног */
+function kpi2DaysSince(?string $ts): ?int {
+    if (!$ts) return null;
+    $diff = (new DateTime($ts))->diff(new DateTime());
+    return (int)$diff->days;
+}
+
+function kpi2TeamEmployee(array $r, int $idx, int $myEmployeeId): array {
+    $state = kpi2TeamState($r);
+    $stageStart = [
+        'plan'      => $r['ev_created_at'],
+        'approve'   => $r['planning_submitted_at'],
+        'self-eval' => $r['approved_at'],
+        'mgr-eval'  => $r['self_submitted_at'],
+    ][$state] ?? null;
+    $isEvaluator = $r['eval_id'] && (int)$r['evaluator_id'] === $myEmployeeId;
+    $d = function ($ts) { return $ts ? substr($ts, 0, 10) : null; };
+    return [
+        'idx'    => $idx,
+        'name'   => $r['last_name'] . '. ' . $r['first_name'],
+        'id'     => $r['employee_code'],
+        'state'  => $state,
+        'days'   => kpi2DaysSince($stageStart),
+        'mine'   => $isEvaluator && in_array($state, ['approve', 'mgr-eval'], true),
+        'score'  => $state === 'done' && $r['final_total_score'] !== null ? number_format($r['final_total_score'] * 100, 1) : null,
+        'closed' => $state === 'done' ? $d($r['manager_submitted_at']) : null,
+        'dates'  => [$d($r['planning_submitted_at']), $d($r['approved_at']), $d($r['self_submitted_at']), $d($r['manager_submitted_at'])],
+        'href'   => $r['eval_id'] ? BASE_URL . '/modules/kpi2/sheet.php?id=' . (int)$r['eval_id'] : null,
+    ];
 }
 
 $employeesByUnit = [];
@@ -80,156 +128,171 @@ foreach ($unitRows as $u) {
     $unitsByParent[$parentKey][] = $u;
 }
 
-$statusColors = [
-    'planning'          => 'bg-slate-100 dark:bg-[#272c38] text-slate-600 dark:text-[#c9cdd6]',
-    'planning_approved' => 'bg-blue-50 dark:bg-[#1c2a3d] text-[#f1592a]',
-    'self_evaluated'    => 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400',
-    'completed'         => 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400',
-];
-
-function kpi2ActionNeeded(array $e, bool $isDirect): ?string {
-    if (!$isDirect || !$e['eval_id']) return null;
-    if ($e['status'] === 'planning' && $e['planning_submitted_at']) return 'Батламж хүлээгдэж байна';
-    if ($e['status'] === 'self_evaluated') return 'Үнэлгээ хүлээгдэж байна';
-    return null;
+/** Дээд нэгж бүрийн доорх ажилтантай нэгжүүдийг (өөрийг нь оруулан) мод дарааллаар хавтгайруулна */
+function kpi2CollectDepts(array $unit, array $unitsByParent, array $employeesByUnit, int $depth, int $myEmployeeId, array &$out): void {
+    $emps = $employeesByUnit[(int)$unit['id']] ?? [];
+    if ($emps) {
+        $list = [];
+        foreach ($emps as $i => $r) $list[] = kpi2TeamEmployee($r, $i + 1, $myEmployeeId);
+        $out[] = ['title' => $unit['name'], 'depth' => $depth, 'emps' => $list];
+    }
+    foreach ($unitsByParent[$unit['id']] ?? [] as $child) {
+        kpi2CollectDepts($child, $unitsByParent, $employeesByUnit, $depth + 1, $myEmployeeId, $out);
+    }
 }
 
-$totalCount = count($rows);
-$statusCounts = ['drafting' => 0, 'awaiting_approval' => 0, 'evaluating' => 0, 'completed' => 0];
-foreach ($rows as $r) {
-    if (!$r['eval_id']) continue;
-    if ($r['status'] === 'planning' && !$r['planning_submitted_at']) $statusCounts['drafting']++;
-    elseif ($r['status'] === 'planning') $statusCounts['awaiting_approval']++;
-    elseif (in_array($r['status'], ['planning_approved', 'self_evaluated'], true)) $statusCounts['evaluating']++;
-    elseif ($r['status'] === 'completed') $statusCounts['completed']++;
+$cards = [];
+foreach ($unitsByParent[0] ?? [] as $rootUnit) {
+    $depts = [];
+    kpi2CollectDepts($rootUnit, $unitsByParent, $employeesByUnit, 0, $myEmployeeId, $depts);
+    if ($depts) $cards[] = ['title' => $rootUnit['name'], 'depts' => $depts];
 }
-$statusCards = [
-    ['key' => 'drafting',          'label' => 'Ажил ноогдсон, төлөвлөж байгаа', 'icon' => 'edit_note',    'iconBg' => 'bg-slate-100 dark:bg-[#272c38]',      'iconColor' => 'text-slate-500 dark:text-[#8b93a1]'],
-    ['key' => 'awaiting_approval', 'label' => 'Батлахаар хүлээгдэж байгаа',     'icon' => 'hourglass_top','iconBg' => 'bg-amber-50 dark:bg-amber-950/30',    'iconColor' => 'text-amber-600 dark:text-amber-400'],
-    ['key' => 'evaluating',        'label' => 'Үнэлгээ хийгдэж байгаа',         'icon' => 'rate_review',  'iconBg' => 'bg-blue-50 dark:bg-[#1c2a3d]',        'iconColor' => 'text-[#f1592a]'],
-    ['key' => 'completed',         'label' => 'Дууссан',                       'icon' => 'task_alt',     'iconBg' => 'bg-green-50 dark:bg-green-950/30',    'iconColor' => 'text-green-600 dark:text-green-400'],
-];
+if ($unassigned) {
+    $list = [];
+    foreach ($unassigned as $i => $r) $list[] = kpi2TeamEmployee($r, $i + 1, $myEmployeeId);
+    $cards[] = ['title' => 'Нэгж тодорхойгүй', 'depts' => [['title' => 'Нэгж тодорхойгүй', 'depth' => 0, 'emps' => $list]]];
+}
 ?>
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.css?v=4">
 
-<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="kpi-root">
     <div>
-        <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
-            <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
-            <span class="mx-2">/</span>
-            <span class="text-[#f1592a] font-medium">Багийн KPI2</span>
-        </nav>
-        <h1 class="text-3xl font-bold"><?= $viewAll ? 'Бүх ажилтны KPI2' : 'Багийн KPI2' ?> <span class="text-sm font-normal text-slate-400 dark:text-[#5a6172]">(туршилтын)</span></h1>
+        <div class="kpi-crumb">
+            <a href="<?= BASE_URL ?>/dashboard.php">Нүүр</a> <span style="opacity:.6">/</span> <b>Багийн KPI2</b>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;flex-wrap:wrap">
+            <h1 style="margin:0;font:700 24px/30px var(--font-sans)"><?= $viewAll ? 'Бүх ажилтны KPI2' : 'Багийн KPI2' ?> <span style="font:400 12px var(--font-sans);color:var(--text-muted)">(туршилтын)</span></h1>
+            <?php if ($periods): ?>
+            <select class="kpi-period" aria-label="Үнэлгээний хугацаа" onchange="location.href='<?= BASE_URL ?>/modules/kpi2/team.php?period_id='+this.value">
+                <?php foreach ($periods as $p): ?>
+                    <option value="<?= $p['id'] ?>" <?= $p['id'] == $selectedPeriodId ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php endif; ?>
+        </div>
     </div>
-    <?php if ($periods): ?>
-    <select onchange="location.href='<?= BASE_URL ?>/modules/kpi2/team.php?period_id='+this.value"
-            class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm">
-        <?php foreach ($periods as $p): ?>
-            <option value="<?= $p['id'] ?>" <?= $p['id'] == $selectedPeriodId ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
-        <?php endforeach; ?>
-    </select>
-    <?php endif; ?>
-</div>
 
 <?php if (!$periods): ?>
-    <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-16 text-center text-slate-400 dark:text-[#5a6172]">
-        Одоогоор KPI2 үнэлгээний хугацаа тохируулаагүй байна.
-    </div>
+    <div class="kpi-card kpi-empty">Одоогоор KPI2 үнэлгээний хугацаа тохируулаагүй байна.</div>
+<?php elseif (!$cards): ?>
+    <div class="kpi-card kpi-empty"><?= $viewAll ? 'Ажилтан байхгүй байна' : 'Танд харьяалагддаг ажилтан одоогоор байхгүй байна' ?></div>
 <?php else: ?>
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <?php foreach ($statusCards as $card): ?>
-        <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-5 flex items-center gap-4">
-            <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 <?= $card['iconBg'] ?> <?= $card['iconColor'] ?>">
-                <span class="material-icons-outlined"><?= $card['icon'] ?></span>
-            </div>
-            <div class="min-w-0">
-                <p class="text-2xl font-bold leading-none"><?= $statusCounts[$card['key']] ?></p>
-                <p class="text-xs text-slate-500 dark:text-[#8b93a1] mt-1.5"><?= $card['label'] ?></p>
-            </div>
+    <div class="kpi-stats" id="kpiStats"></div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+        <span id="kpiTotal" class="kpi-dept__count"></span>
+        <div style="display:flex;gap:8px">
+            <button type="button" class="kpi-period" data-expand="1">Бүгдийг дэлгэх</button>
+            <button type="button" class="kpi-period" data-expand="0">Бүгдийг хураах</button>
         </div>
-    <?php endforeach; ?>
+    </div>
+
+    <div id="kpiCards" style="display:flex;flex-direction:column;gap:16px"></div>
+    <div id="kpiEmpty" class="kpi-card kpi-empty" style="display:none">Энэ шүүлтүүрт тохирох ажилтан алга.</div>
+<?php endif; ?>
 </div>
 
-<div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-4 flex items-center gap-3">
-    <span class="material-icons-outlined text-slate-400 dark:text-[#8b93a1]">groups</span>
-    <span class="text-sm text-slate-500 dark:text-[#8b93a1]">Нийт: <strong class="text-[#1c2430] dark:text-[#f2f3f6]"><?= $totalCount ?></strong> ажилтан</span>
-</div>
+<?php if ($cards): ?>
+<script src="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.js?v=2"></script>
+<script>
+(function () {
+  var CARDS_DATA = <?= json_encode($cards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 
-<div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-2">
-<?php
-function renderKpi2EmployeeRow(array $r, int $depth, int $num, int $myEmployeeId, bool $viewAll, array $statusColors): void {
-    $isDirect = (int)($r['evaluator_id'] ?? 0) === $myEmployeeId;
-    $needs = kpi2ActionNeeded($r, $isDirect);
-    ?>
-    <div class="flex items-center gap-3 py-2 pr-3 hover:bg-slate-50 dark:hover:bg-[#20242e] rounded-lg transition-colors" style="padding-left: <?= 20 + $depth * 24 ?>px">
-        <span class="text-xs text-slate-400 dark:text-[#5a6172] w-5 flex-shrink-0"><?= $num ?></span>
-        <div class="min-w-0 flex-1">
-            <span class="font-medium"><?= htmlspecialchars($r['last_name'] . '. ' . $r['first_name']) ?></span>
-            <span class="text-xs text-slate-400 dark:text-[#8b93a1] ml-1"><?= htmlspecialchars($r['employee_code']) ?></span>
-            <?php if (!$viewAll && !$isDirect && $r['eval_id']): ?><span class="text-xs text-slate-300 dark:text-[#3a4151]"> · хяналтаар</span><?php endif; ?>
-        </div>
-        <?php if ($r['eval_id']): ?>
-            <span class="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 <?= $statusColors[$r['status']] ?>"><?= KPI2_STATUS_LABELS[$r['status']] ?></span>
-        <?php else: ?>
-            <span class="px-2.5 py-1 rounded-full text-xs font-medium flex-shrink-0 border border-dashed border-slate-300 dark:border-[#3a4151] text-slate-400 dark:text-[#5a6172]">Ажил ноогдоогүй</span>
-        <?php endif; ?>
-        <span class="text-sm font-semibold w-16 text-right flex-shrink-0">
-            <?= ($r['eval_id'] && $r['status'] === 'completed') ? '<span class="text-[#f1592a]">' . number_format($r['final_total_score']*100, 1) . '%</span>' : '<span class="text-slate-300 dark:text-[#3a4151]">—</span>' ?>
-        </span>
-        <?php if ($needs): ?>
-            <span class="hidden lg:inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400 flex-shrink-0 w-40">
-                <span class="material-icons-outlined" style="font-size:14px">schedule</span><?= $needs ?>
-            </span>
-        <?php else: ?>
-            <span class="hidden lg:inline-block w-40 flex-shrink-0"></span>
-        <?php endif; ?>
-        <span class="w-16 text-right flex-shrink-0">
-            <?php if ($r['eval_id']): ?>
-                <a href="<?= BASE_URL ?>/modules/kpi2/sheet.php?id=<?= $r['eval_id'] ?>" class="text-[#f1592a] font-medium text-sm hover:underline"><?= $isDirect || $viewAll ? 'Нээх' : 'Харах' ?></a>
-            <?php else: ?>
-                <span class="text-slate-300 dark:text-[#3a4151]">—</span>
-            <?php endif; ?>
-        </span>
-    </div>
-    <?php
-}
+  var ICON = {
+    none: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8" stroke-dasharray="3 3"/></svg>',
+    plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h7M4 17h5"/><path d="M14 19l1-3 5-5 2 2-5 5z"/></svg>',
+    approve: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></svg>',
+    eval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 12l3-3 2 2 3-3"/></svg>',
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>'
+  };
+  var CARDS = [["none", "none", "KPI үүсгээгүй"], ["plan", "plan", "Төлөвлөж байгаа"], ["approve", "approve", "Батлахаар хүлээгдэж байгаа"], ["eval", "self-eval", "Үнэлгээ хийгдэж байгаа"], ["done", "done", "Дууссан"]];
+  var bucket = null;
+  // Эвхэгдсэн/дэлгэгдсэн төлөв: "c<карт>" = газар, "c<карт>d<хэлтэс>" = хэлтэс. Анх бүгд хураагдсан.
+  var open = {};
+  var CHEV = '<svg class="kpi-fold__chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5"/></svg>';
 
-function renderKpi2UnitGroup(array $unit, array $unitsByParent, array $employeesByUnit, int $depth, int $num, bool $isRoot, int $myEmployeeId, bool $viewAll, array $statusColors): void {
-    $hasChildren = !empty($unitsByParent[$unit['id']]);
-    $employees = $employeesByUnit[(int)$unit['id']] ?? [];
-    if (!$hasChildren && empty($employees)) return;
-    ?>
-    <div class="<?= $isRoot ? 'mt-4 first:mt-1' : '' ?>" style="padding-left: <?= $depth * 24 ?>px">
-        <div class="flex items-center gap-2 py-2 <?= $isRoot ? '' : 'border-t border-slate-100 dark:border-[#2a2f3b]' ?>">
-            <span class="material-icons-outlined text-[#f1592a]" style="font-size:16px"><?= $isRoot ? 'business' : 'device_hub' ?></span>
-            <?php if (!$isRoot): ?><span class="text-xs text-slate-400 dark:text-[#5a6172] font-semibold"><?= $num ?></span><?php endif; ?>
-            <span class="font-bold <?= $isRoot ? 'text-base' : 'text-sm' ?>"><?= htmlspecialchars($unit['name']) ?></span>
-        </div>
-        <?php foreach ($employees as $i => $r): renderKpi2EmployeeRow($r, $depth + 1, $i + 1, $myEmployeeId, $viewAll, $statusColors); endforeach; ?>
-        <?php foreach ($unitsByParent[$unit['id']] ?? [] as $j => $child): renderKpi2UnitGroup($child, $unitsByParent, $employeesByUnit, $depth + 1, $j + 1, false, $myEmployeeId, $viewAll, $statusColors); endforeach; ?>
-    </div>
-    <?php
-}
+  function countsOf(emps) {
+    var c = { none: 0, plan: 0, approve: 0, eval: 0, done: 0 };
+    emps.forEach(function (e) { c[KPI2.bucketOf(e.state)]++; });
+    return c;
+  }
+  var all = [];
+  CARDS_DATA.forEach(function (card) { card.depts.forEach(function (d) { all = all.concat(d.emps); }); });
+  var totalCounts = countsOf(all);
 
-if (empty($unitsByParent[0] ?? []) && empty($unassigned)): ?>
-    <div class="text-center py-16 text-slate-400 dark:text-[#5a6172]">
-        <span class="material-icons-outlined block mb-3" style="font-size:48px">groups</span>
-        <?= $viewAll ? 'Ажилтан байхгүй байна' : 'Танд харьяалагддаг ажилтан одоогоор байхгүй байна' ?>
-    </div>
-<?php else:
-    foreach ($unitsByParent[0] ?? [] as $rootUnit) {
-        renderKpi2UnitGroup($rootUnit, $unitsByParent, $employeesByUnit, 0, 0, true, $myEmployeeId, $viewAll, $statusColors);
+  function visible(e) {
+    return !bucket || KPI2.bucketOf(e.state) === bucket;
+  }
+  function isOpen(key) { return !!open[key]; }
+  // Карт шүүлт сонгоход тохирох мөртэй газар/хэлтсийг дэлгэнэ, шүүлт арилахад бүгдийг хураана
+  function openMatching() {
+    open = {};
+    if (!bucket) return;
+    CARDS_DATA.forEach(function (card, ci) {
+      card.depts.forEach(function (d, di) {
+        if (d.emps.some(visible)) { open["c" + ci] = true; open["c" + ci + "d" + di] = true; }
+      });
+    });
+  }
+
+  function render() {
+    document.getElementById("kpiStats").innerHTML = CARDS.map(function (c) {
+      return '<button type="button" class="kpi-stat" data-b="' + c[0] + '" data-state="' + c[1] + '" aria-pressed="' + (bucket === c[0]) + '"><span class="kpi-stat__icon">' + ICON[c[0]] +
+        '</span><span><div class="kpi-stat__value">' + totalCounts[c[0]] + '</div><div class="kpi-stat__label">' + c[2] + "</div></span></button>";
+    }).join("");
+
+    var shown = 0;
+    document.getElementById("kpiCards").innerHTML = CARDS_DATA.map(function (card, ci) {
+      var cardKey = "c" + ci, cardOpen = isOpen(cardKey);
+      var cardEmps = [];
+      var depts = card.depts.map(function (d, di) {
+        var rows = d.emps.filter(visible);
+        if (!rows.length) return "";
+        shown += rows.length;
+        cardEmps = cardEmps.concat(d.emps);
+        var key = cardKey + "d" + di, deptOpen = isOpen(key), c = countsOf(d.emps);
+        return '<div class="kpi-dept kpi-fold" role="button" tabindex="0" aria-expanded="' + deptOpen + '" data-fold="' + key + '" style="padding-left:' + (16 + d.depth * 20) + 'px">' +
+            '<div class="kpi-dept__title">' + CHEV + KPI2.esc(d.title) + ' <span class="kpi-dept__count">' + d.emps.length + ' ажилтан</span></div>' +
+            '<div class="kpi-dept__bar">' + KPI2.dist(c) + KPI2.legend(c) + '</div>' +
+          '</div>' + (deptOpen ? KPI2.listHead() + rows.map(KPI2.row).join("") : "");
+      }).join("");
+      if (!depts) return "";
+      var cc = countsOf(cardEmps);
+      return '<div class="kpi-card">' +
+          '<div class="kpi-card__title kpi-fold" role="button" tabindex="0" aria-expanded="' + cardOpen + '" data-fold="' + cardKey + '">' +
+            '<span class="kpi-dept__title" style="font-size:15px">' + CHEV + KPI2.esc(card.title) + ' <span class="kpi-dept__count">' + cardEmps.length + ' ажилтан · ' + card.depts.length + ' нэгж</span></span>' +
+            '<span class="kpi-dept__bar">' + KPI2.dist(cc) + '</span>' +
+          '</div>' + (cardOpen ? depts : "") +
+        '</div>';
+    }).join("");
+
+    document.getElementById("kpiEmpty").style.display = shown ? "none" : "block";
+    document.getElementById("kpiTotal").innerHTML = "Нийт: <b style=\"color:var(--text)\">" + all.length + "</b> ажилтан" + (shown !== all.length ? " · шүүлтэд тохирох " + shown : "");
+  }
+
+  function toggleFold(el) {
+    var key = el.dataset.fold;
+    open[key] = !open[key];
+    render();
+  }
+  var root = document.querySelector(".kpi-root");
+  root.addEventListener("click", function (ev) {
+    var s = ev.target.closest(".kpi-stat"); if (s) { bucket = bucket === s.dataset.b ? null : s.dataset.b; openMatching(); render(); return; }
+    var f = ev.target.closest(".kpi-fold"); if (f) { toggleFold(f); return; }
+    var x = ev.target.closest("[data-expand]");
+    if (x) {
+      open = {};
+      if (x.dataset.expand === "1") CARDS_DATA.forEach(function (card, ci) { open["c" + ci] = true; card.depts.forEach(function (d, di) { open["c" + ci + "d" + di] = true; }); });
+      render();
     }
-    if ($unassigned) { ?>
-        <div class="mt-4">
-            <div class="flex items-center gap-2 py-2">
-                <span class="material-icons-outlined text-slate-400" style="font-size:16px">help_outline</span>
-                <span class="font-bold text-base text-slate-400 dark:text-[#5a6172]">Нэгж тодорхойгүй</span>
-            </div>
-            <?php foreach ($unassigned as $i => $r): renderKpi2EmployeeRow($r, 1, $i + 1, $myEmployeeId, $viewAll, $statusColors); endforeach; ?>
-        </div>
-    <?php }
-endif; ?>
-</div>
+  });
+  root.addEventListener("keydown", function (ev) {
+    var f = ev.target.closest(".kpi-fold");
+    if (f && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); toggleFold(f); }
+  });
+  render();
+})();
+</script>
 <?php endif; ?>
 
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/footer.php'; ?>

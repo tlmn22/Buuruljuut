@@ -620,7 +620,7 @@ CREATE TABLE transport_requests (
   id                              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   requester_id                    INT UNSIGNED NOT NULL,
   travel_direction                VARCHAR(255) NOT NULL,
-  travel_purpose                  ENUM('14/14 ростер','7/7 ростер','5/2 ээлж','3/2 ээлж','Ашиглалтын ээлж','Уулын ээлж') NOT NULL,
+  travel_purpose                  ENUM('14/14 ростер','7/7 ростер','5/2 ээлж','3/2 ээлж','Ашиглалтын ээлж','Уулын ээлж','Бусад') NOT NULL,
   start_date                      DATE NOT NULL,
   end_date                        DATE NOT NULL,
   total_days                      INT UNSIGNED NOT NULL DEFAULT 1,
@@ -654,6 +654,7 @@ CREATE TABLE transport_request_passengers (
   organization  VARCHAR(200) NULL,
   position      VARCHAR(200) NULL,
   unit_name     VARCHAR(200) NULL,
+  meal_location ENUM('station','camp','other') NULL,   -- TRANSPORT_MEAL_LOCATIONS: Станц / Кемп / Бусад
   food_morning  TINYINT(1) NOT NULL DEFAULT 0,
   food_lunch    TINYINT(1) NOT NULL DEFAULT 0,
   food_dinner   TINYINT(1) NOT NULL DEFAULT 0,
@@ -707,6 +708,10 @@ CREATE TABLE transport_orders (
   transport_manager_id  INT UNSIGNED NOT NULL,
   status                ENUM('draft','pending_director','director_rejected','completed') NOT NULL DEFAULT 'draft',
   note                  VARCHAR(500) NULL,
+  depart_location       VARCHAR(255) NULL,   -- Хөдлөх газар (менежер гараар бичнэ, хүсэгчид харагдана)
+  depart_at             DATETIME NULL,
+  return_location       VARCHAR(255) NULL,   -- Буцаж хөдлөх газар
+  return_at             DATETIME NULL,
   director_id           INT UNSIGNED NULL,
   director_reviewed_at  TIMESTAMP NULL DEFAULT NULL,
   director_comment      VARCHAR(500) NULL,

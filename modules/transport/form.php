@@ -23,7 +23,9 @@ if ($id) {
                mgr.last_name AS manager_last, mgr.first_name AS manager_first,
                dir.last_name AS director_last, dir.first_name AS director_first,
                tm.last_name AS tm_last, tm.first_name AS tm_first,
-               o.status AS order_status
+               o.status AS order_status,
+               o.depart_location AS order_depart_location, o.depart_at AS order_depart_at,
+               o.return_location AS order_return_location, o.return_at AS order_return_at
         FROM transport_requests r
         JOIN employees req ON req.id = r.requester_id
         LEFT JOIN employees mgr ON mgr.id = r.manager_id
@@ -47,6 +49,22 @@ if ($id) {
     $canActAsDirector = $isDirector && $req['status'] === 'pending_director';
     // Хуучин (нэгтгэх боломж гарахаас өмнөх) шууд бөглөсөн бичлэгийг л энд харуулна — шинэ бичлэг order.php-ээр дамжина
     $showLegacyFulfillment = $req['status'] === 'completed' && empty($req['order_id']);
+
+    // Нэгтгэсэн захиалгын машин бүрийн жолоочийн мэдээлэл — хүсэгчид харуулна
+    $orderDrivers = [];
+    if ($req['status'] === 'merged' && !empty($req['order_id'])) {
+        $od = $pdo->prepare("
+            SELECT ov.vehicle_type_id, u.unit_index, u.plate_number, u.driver_name, u.driver_phone
+            FROM transport_order_vehicles ov
+            JOIN transport_order_vehicle_units u ON u.order_vehicle_id = ov.id
+            WHERE ov.order_id = ?
+            ORDER BY ov.sort_order, ov.id, u.unit_index
+        ");
+        $od->execute([$req['order_id']]);
+        $orderDrivers = array_values(array_filter($od->fetchAll(), function ($d) {
+            return trim((string)$d['driver_name']) !== '' || trim((string)$d['driver_phone']) !== '' || trim((string)$d['plate_number']) !== '';
+        }));
+    }
 
     $p = $pdo->prepare("
         SELECT tp.*, e.last_name AS emp_last, e.first_name AS emp_first, e.employee_code AS emp_code
@@ -94,6 +112,7 @@ $passengersForJs = array_map(function ($p) {
         'org' => (string)$p['organization'],
         'pos' => (string)$p['position'],
         'unit' => (string)$p['unit_name'],
+        'loc' => (string)($p['meal_location'] ?? ''),
         'b' => (bool)$p['food_morning'],
         'l' => (bool)$p['food_lunch'],
         'd' => (bool)$p['food_dinner'],
@@ -315,6 +334,44 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
             </div>
             <span class="px-3 py-1.5 rounded-full text-sm font-medium <?= TRANSPORT_ORDER_STATUS_COLORS[$req['order_status']] ?>"><?= TRANSPORT_ORDER_STATUS_LABELS[$req['order_status']] ?></span>
         </div>
+        <?php if ($req['order_depart_location'] || $req['order_depart_at'] || $req['order_return_location'] || $req['order_return_at']): ?>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <?php foreach ([['Явах', 'depart'], ['Буцах', 'return']] as [$label, $key]): ?>
+            <div class="tr-item">
+                <span class="text-sm font-bold"><?= $label ?></span>
+                <div class="tr-srow"><span>Газар</span><span><?= htmlspecialchars($req['order_' . $key . '_location'] ?: '—') ?></span></div>
+                <div class="tr-srow"><span>Цаг</span><span><?= $req['order_' . $key . '_at'] ? htmlspecialchars(substr($req['order_' . $key . '_at'], 0, 16)) : '—' ?></span></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <?php if ($orderDrivers): ?>
+        <div class="flex flex-col gap-2">
+            <span class="text-sm font-bold">Машин ба жолооч</span>
+            <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-100 dark:border-[#2a2f3b] text-xs uppercase tracking-wider text-slate-500 dark:text-[#8b93a1]">
+                        <th class="text-left font-semibold py-2 pr-3">Машин</th>
+                        <th class="text-left font-semibold py-2 pr-3">Улсын дугаар</th>
+                        <th class="text-left font-semibold py-2 pr-3">Жолооч</th>
+                        <th class="text-left font-semibold py-2">Утас</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-[#2a2f3b]">
+                <?php foreach ($orderDrivers as $d): $vt = TRANSPORT_VEHICLE_TYPES[$d['vehicle_type_id']] ?? ['full' => $d['vehicle_type_id']]; ?>
+                    <tr>
+                        <td class="py-2.5 pr-3 font-semibold"><?= htmlspecialchars($vt['full']) ?></td>
+                        <td class="py-2.5 pr-3 uppercase tracking-wider"><?= htmlspecialchars($d['plate_number'] ?: '—') ?></td>
+                        <td class="py-2.5 pr-3"><?= htmlspecialchars($d['driver_name'] ?: '—') ?></td>
+                        <td class="py-2.5 whitespace-nowrap"><?php if ($d['driver_phone']): ?><a href="tel:<?= htmlspecialchars(preg_replace('/[^0-9+]/', '', $d['driver_phone'])) ?>" class="text-[#f1592a] hover:underline"><?= htmlspecialchars($d['driver_phone']) ?></a><?php else: ?>—<?php endif; ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
     <?php elseif ($req):
         $approvalSteps = ['Шууд удирдлага', 'Тээвэр хариуцсан менежер', 'Тээвэр хариуцсан захирал', 'Баталгаажсан'];
@@ -535,7 +592,9 @@ function toggleSection(head) {
   var AJAX = '<?= BASE_URL ?>/modules/transport/ajax.php';
   var REQ_ID = <?= (int)$id ?>;
 
-  var SUV_ICON = '<svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17v-5l4-6h17l6 6h6a1 1 0 0 1 1 1v4z"/><path d="M10 6v6M21 6l1 6M3 12h34"/><circle cx="10" cy="18" r="3" fill="#fff"/><circle cx="30" cy="18" r="3" fill="#fff"/></svg>';
+  var MEAL_LOCS = <?= json_encode(TRANSPORT_MEAL_LOCATIONS, JSON_UNESCAPED_UNICODE) ?>;
+  var BUS_ICON ='<svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="3" width="36" height="14" rx="2"/><path d="M2 10h36M8 3v7M15 3v7M22 3v7M29 3v7"/><circle cx="10" cy="18" r="3" fill="#fff"/><circle cx="30" cy="18" r="3" fill="#fff"/></svg>';
+  var SUV_ICON ='<svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17v-5l4-6h17l6 6h6a1 1 0 0 1 1 1v4z"/><path d="M10 6v6M21 6l1 6M3 12h34"/><circle cx="10" cy="18" r="3" fill="#fff"/><circle cx="30" cy="18" r="3" fill="#fff"/></svg>';
   var TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>';
   var SEARCH_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
 
@@ -549,7 +608,7 @@ function toggleSection(head) {
     cars: <?= json_encode($vehiclesForJs) ?>
   };
   var rid = st.rows.reduce(function (m, r) { return Math.max(m, r.id || 0); }, 0);
-  function newRow() { return { id: ++rid, guest: false, employee_id: null, name: '', org: '', pos: '', unit: '', b: false, l: false, d: false }; }
+  function newRow() { return { id: ++rid, guest: false, employee_id: null, name: '', org: '', pos: '', unit: '', loc: '', b: false, l: false, d: false }; }
   if (!st.rows.length && EDITABLE) st.rows.push(newRow());
 
   function $(id) { return document.getElementById(id); }
@@ -574,6 +633,9 @@ function toggleSection(head) {
         return '<div><span class="tr-lbl-sub block mb-1.5">' + label + '</span><input class="tr-inp sm" type="text" placeholder="' + (r.guest ? 'Бичих' : 'Автоматаар бөглөгдөнө') + '"' + ro + dis() + ' data-row="' + r.id + '" data-field="' + key + '" value="' + esc(r[key]) + '"></div>';
       }
       function m(k, label) { return '<button type="button" class="tr-meal' + (r[k] ? ' on' : '') + '"' + dis() + ' data-row="' + r.id + '" data-meal="' + k + '">' + label + '</button>'; }
+      var locErr = (r.b || r.l || r.d) && !r.loc;
+      var loc = '<select class="tr-inp sm' + (locErr ? ' err' : '') + '" style="width:auto;min-width:96px"' + dis() + ' data-row="' + r.id + '" data-field="loc"><option value="">Байршил</option>' +
+        Object.keys(MEAL_LOCS).map(function (k) { return '<option value="' + k + '"' + (r.loc === k ? ' selected' : '') + '>' + esc(MEAL_LOCS[k]) + '</option>'; }).join('') + '</select>';
       return '<div class="tr-item"><div class="flex gap-3 items-center flex-wrap">' +
         '<span class="tr-num">' + (i + 1) + '</span>' +
         '<div class="tr-seg-wrap">' +
@@ -582,8 +644,8 @@ function toggleSection(head) {
         '<div class="tr-search relative flex-1" style="min-width:200px">' + SEARCH_ICON + '<input class="tr-inp pax-name-search" type="text" autocomplete="off" placeholder="' + (r.guest ? 'Зочны овог, нэр' : 'Ажилтныг нэр эсвэл кодоор хайх…') + '"' + dis() + ' data-row="' + r.id + '" data-field="name" value="' + esc(r.name) + '">' +
         '<div class="typeahead-results hidden absolute z-20 mt-1 w-full bg-white dark:bg-[#1c212b] border border-slate-200 dark:border-[#2a2f3b] rounded-lg shadow-lg max-h-52 overflow-y-auto"></div></div>' +
         (EDITABLE ? '<button type="button" class="tr-icon-btn" data-del-row="' + r.id + '"' + (one ? ' disabled' : '') + '>' + TRASH + '</button>' : '') +
-        '</div><div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end sm:pl-[52px]">' + f('org', 'Байгууллага') + f('pos', 'Албан тушаал') + f('unit', 'Газар, нэгж / хэлтэс') +
-        '<div><span class="tr-lbl-sub block mb-1.5">Хоол</span><div class="flex gap-1.5">' + m('b', 'Өглөө') + m('l', 'Өдөр') + m('d', 'Орой') + '</div></div>' +
+        '</div><div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end sm:pl-[52px]">' + f('org', 'Байгууллага') + f('pos', 'Албан тушаал') + f('unit', 'Газар, нэгж / хэлтэс') +
+        '<div><span class="tr-lbl-sub block mb-1.5">Хоол</span><div class="flex flex-nowrap items-center gap-1.5">' + loc + m('b', 'Өглөө') + m('l', 'Өдөр') + m('d', 'Орой') + '</div></div>' +
         '</div></div>';
     }).join('');
   }
@@ -594,7 +656,7 @@ function toggleSection(head) {
       var t = type(c.type);
       var sub = t.meta + (c.qty ? ' × ' + c.qty + ' = ' + (t.seats * c.qty) + ' зорчигчийн багтаамж' : '');
       return '<div class="tr-item"><div class="flex gap-3 items-center flex-wrap">' +
-        '<span class="tr-num" style="width:44px;height:44px;border-radius:12px;background:#fff">' + SUV_ICON + '</span>' +
+        '<span class="tr-num" style="width:44px;height:44px;border-radius:12px;background:#fff">' + (t.kind === 'bus' ? BUS_ICON : SUV_ICON) + '</span>' +
         '<div class="flex-1 flex flex-col gap-0" style="min-width:160px"><span class="text-[15px] font-bold">' + esc(t.full) + '</span><span class="text-[13px] text-slate-500 dark:text-[#8b93a1]">' + esc(sub) + '</span></div>' +
         '<span class="text-xs text-slate-500 dark:text-[#8b93a1]">Тоо</span>' +
         '<div class="tr-stepper"><button type="button" class="tr-icon-btn" style="width:44px;height:42px" data-dec="' + c.type + '"' + (c.qty <= 0 ? ' disabled' : dis()) + '><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14"/></svg></button><b>' + c.qty + '</b><button type="button" class="tr-icon-btn" style="width:44px;height:42px" data-inc="' + c.type + '"' + dis() + '><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>' +
@@ -625,10 +687,12 @@ function toggleSection(head) {
     $('portions').textContent = (cB + cL + cD) * (dd.d || 1);
 
     var tripOk = !!((st.route || '').trim() && st.purpose && dd.d);
-    var peopleOk = st.rows.every(function (r) { return (r.name || '').trim(); });
+    var namesOk = st.rows.every(function (r) { return (r.name || '').trim(); });
+    var mealLocOk = st.rows.every(function (r) { return !(r.b || r.l || r.d) || r.loc; });
+    var peopleOk = namesOk && mealLocOk;
     var carsOk = st.cars.some(function (c) { return c.qty > 0; });
     if ($('checks')) {
-      var checks = [[!!(st.route || '').trim(), 'Аяллын чиглэл'], [!!st.purpose, 'Аяллын зорилго'], [!!dd.d, 'Эхлэх, дуусах огноо'], [peopleOk, 'Зорчигчдын нэр'], [carsOk, 'Машины төрөл']];
+      var checks = [[!!(st.route || '').trim(), 'Аяллын чиглэл'], [!!st.purpose, 'Аяллын зорилго'], [!!dd.d, 'Эхлэх, дуусах огноо'], [namesOk, 'Зорчигчдын нэр'], [mealLocOk, 'Хоолны байршил'], [carsOk, 'Машины төрөл']];
       $('checks').innerHTML = checks.map(function (c) { return '<div class="tr-check"><i class="' + (c[0] ? 'ok' : '') + '">✓</i><span>' + c[1] + '</span></div>'; }).join('');
     }
     if ($('submit')) $('submit').disabled = !(tripOk && peopleOk && carsOk);
@@ -651,6 +715,7 @@ function toggleSection(head) {
     if (r && t.dataset.field) {
       r[t.dataset.field] = t.value;
       if (t.classList.contains('pax-name-search')) r.employee_id = null;
+      if (t.dataset.field === 'loc') renderRows();
       renderSummary();
     }
   });
@@ -727,7 +792,7 @@ function toggleSection(head) {
         travel_direction: st.route, travel_purpose: st.purpose, start_date: st.start, end_date: st.end,
         total_days: $('days').textContent === '—' ? 1 : $('days').textContent, total_km: st.km,
         passengers: JSON.stringify(st.rows.map(function (r) {
-          return { employee_id: r.employee_id, type: r.guest ? 'Зочин' : 'Ажилтан', full_name: r.employee_id ? '' : r.name, organization: r.org, position: r.pos, unit_name: r.unit, food_morning: r.b ? 1 : 0, food_lunch: r.l ? 1 : 0, food_dinner: r.d ? 1 : 0 };
+          return { employee_id: r.employee_id, type: r.guest ? 'Зочин' : 'Ажилтан', full_name: r.employee_id ? '' : r.name, organization: r.org, position: r.pos, unit_name: r.unit, meal_location: r.loc || '', food_morning: r.b ? 1 : 0, food_lunch: r.l ? 1 : 0, food_dinner: r.d ? 1 : 0 };
         })),
         vehicles: JSON.stringify(st.cars.filter(function (c) { return c.qty > 0; }).map(function (c) { return { vehicle_type_id: c.type, qty: c.qty }; }))
       };
@@ -767,6 +832,14 @@ function doReject() {
   var viewMode = 'cards';
   var TM_EDITABLE = <?= $tmEditable ?? false ? 'true' : 'false' ?>;
   var FUEL_TYPES = <?= json_encode(TRANSPORT_FUEL_TYPES) ?>;
+  var RENTAL_COMPANIES = <?= json_encode(TRANSPORT_RENTAL_COMPANIES, JSON_UNESCAPED_UNICODE) ?>;
+  // Түрээсийн компанийн сонголт — зөвхөн "Гадны түрээс" үед идэвхтэй; жагсаалтад байхгүй хуучин утгыг хадгална
+  function companySel(c, cls) {
+    var list = RENTAL_COMPANIES.slice();
+    if (c.rental_company && list.indexOf(c.rental_company) < 0) list.push(c.rental_company);
+    return '<select' + (cls ? ' class="' + cls + '"' : '') + ((TM_EDITABLE && c.is_rented) ? '' : ' disabled') + ' data-car="' + c.uid + '" data-k="rental_company"><option value="">Компани сонгох</option>' +
+      list.map(function (n) { return '<option value="' + esc(n) + '"' + (c.rental_company === n ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>';
+  }
   var cars = <?= json_encode($fulfillmentUnitsForJs) ?>;
 
   function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
@@ -803,7 +876,7 @@ function doReject() {
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">' +
           '<div class="tr-group"><div class="tr-gtitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>Түрээс</div>' +
             '<div><span class="tr-lbl-sub block mb-1.5">Түрээсийн төрөл</span><div class="tr-seg-wrap"><button type="button" class="tr-seg flex-1' + (c.is_rented ? '' : ' on') + '"' + dis() + ' data-car="' + c.uid + '" data-rented="0">Байгууллагын машин</button><button type="button" class="tr-seg flex-1' + (c.is_rented ? ' on' : '') + '"' + dis() + ' data-car="' + c.uid + '" data-rented="1">Гадны түрээс</button></div></div>' +
-            field(c, 'rental_company', 'Түрээсийн компани', { ph: 'Компанийн нэр' }) +
+            '<div><label class="tr-lbl-sub block mb-1.5">Түрээсийн компани</label>' + companySel(c, 'tr-inp sm') + '</div>' +
             '<div class="grid grid-cols-[1fr_1.3fr_1.4fr] gap-2.5 items-end">' + field(c, 'rental_days', 'Хоног', { type: 'number' }) + field(c, 'rental_rate', 'Өдрийн үнэ', { type: 'number', unit: '₮' }) +
             '<div><span class="tr-lbl-sub block mb-1.5">Түрээсийн дүн</span><div class="tr-readout" data-out="rent' + c.uid + '">' + fmt(r.rent) + '</div></div></div>' +
             (!c.is_rented ? '<p class="text-xs text-slate-400 dark:text-[#5a6172] m-0">Байгууллагын өөрийн машин тул түрээсийн төлбөр тооцохгүй.</p>' : '') +
@@ -839,7 +912,7 @@ function doReject() {
       return '<tr>' +
         '<td class="tr-tm-ro">' + esc(c.model) + (multi ? ' #' + c.unit_index : '') + '<br><span class="text-[11px] font-normal text-slate-400 dark:text-[#5a6172]">' + esc(c.meta) + '</span></td>' +
         '<td><select' + dis() + ' data-car="' + c.uid + '" data-k="is_rented"><option value="0"' + (c.is_rented ? '' : ' selected') + '>Байгууллагын</option><option value="1"' + (c.is_rented ? ' selected' : '') + '>Гадны түрээс</option></select></td>' +
-        '<td>' + tinp(c, 'rental_company') + '</td>' +
+        '<td>' + companySel(c, '') + '</td>' +
         '<td>' + tinp(c, 'plate') + '</td>' +
         '<td>' + tinp(c, 'driver') + '</td>' +
         '<td>' + tinp(c, 'phone', { type: 'tel' }) + '</td>' +

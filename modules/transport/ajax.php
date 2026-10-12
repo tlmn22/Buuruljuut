@@ -138,10 +138,14 @@ try {
                 }
 
                 $insertPax = $pdo->prepare("INSERT INTO transport_request_passengers
-                    (request_id, employee_id, type, full_name, organization, position, unit_name, food_morning, food_lunch, food_dinner, sort_order)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+                    (request_id, employee_id, type, full_name, organization, position, unit_name, meal_location, food_morning, food_lunch, food_dinner, sort_order)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
                 foreach ($passengers as $i => $p) {
                     $empId = intval($p['employee_id'] ?? 0) ?: null;
+                    $mealLoc = $p['meal_location'] ?? '';
+                    $hasMeal = !empty($p['food_morning']) || !empty($p['food_lunch']) || !empty($p['food_dinner']);
+                    if ($mealLoc !== '' && !isset(TRANSPORT_MEAL_LOCATIONS[$mealLoc])) throw new Exception('Буруу хоолны байршил.');
+                    if ($hasMeal && $mealLoc === '') throw new Exception('Хоол сонгосон зорчигчийн хоолны байршлыг (Станц/Кемп/Бусад) сонгоно уу.');
                     $insertPax->execute([
                         $id, $empId,
                         trim($p['type'] ?? '') ?: null,
@@ -149,6 +153,7 @@ try {
                         trim($p['organization'] ?? '') ?: null,
                         trim($p['position'] ?? '') ?: null,
                         trim($p['unit_name'] ?? '') ?: null,
+                        $mealLoc ?: null,
                         !empty($p['food_morning']) ? 1 : 0,
                         !empty($p['food_lunch']) ? 1 : 0,
                         !empty($p['food_dinner']) ? 1 : 0,
@@ -341,6 +346,20 @@ try {
             $units    = json_decode($_POST['units'] ?? '[]', true) ?: [];
             if (empty($vehicles)) throw new Exception('Дор хаяж нэг машин нэмнэ үү.');
 
+            // Хөдлөх / буцах газар, цаг (datetime-local: 'YYYY-MM-DDTHH:MM') — хүсэгчид харагдана
+            $parseDt = function ($v, $label) {
+                $v = trim((string)$v);
+                if ($v === '') return null;
+                $dt = DateTime::createFromFormat('Y-m-d\TH:i', $v);
+                if (!$dt) throw new Exception($label . ' буруу байна.');
+                return $dt->format('Y-m-d H:i:s');
+            };
+            $departLocation = mb_substr(trim($_POST['depart_location'] ?? ''), 0, 255);
+            $returnLocation = mb_substr(trim($_POST['return_location'] ?? ''), 0, 255);
+            $departAt = $parseDt($_POST['depart_at'] ?? '', 'Явах цаг');
+            $returnAt = $parseDt($_POST['return_at'] ?? '', 'Буцах цаг');
+            if ($departAt && $returnAt && $returnAt < $departAt) throw new Exception('Буцах цаг явах цагаас өмнө байж болохгүй.');
+
             $pdo->beginTransaction();
             try {
                 $pdo->prepare("DELETE FROM transport_order_vehicles WHERE order_id=?")->execute([$orderId]);
@@ -364,8 +383,10 @@ try {
 
                 saveVehicleUnits($pdo, 'transport_order_vehicle_units', 'order_vehicle_id', array_values($newVehIds), $mappedUnits);
 
-                $pdo->prepare("UPDATE transport_orders SET status='pending_director', note=?, director_id=NULL, director_reviewed_at=NULL, director_comment=NULL WHERE id=?")
-                    ->execute([$note ?: null, $orderId]);
+                $pdo->prepare("UPDATE transport_orders SET status='pending_director', note=?,
+                        depart_location=?, depart_at=?, return_location=?, return_at=?,
+                        director_id=NULL, director_reviewed_at=NULL, director_comment=NULL WHERE id=?")
+                    ->execute([$note ?: null, $departLocation ?: null, $departAt, $returnLocation ?: null, $returnAt, $orderId]);
                 $pdo->commit();
             } catch (Exception $e) {
                 $pdo->rollBack();

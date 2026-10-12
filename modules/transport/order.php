@@ -290,6 +290,38 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
     </section>
     </div>
 
+    <?php
+    $dtInput = function ($v) { return $v ? str_replace(' ', 'T', substr($v, 0, 16)) : ''; };
+    $scheduleParts = [
+        ['Явах', 'depart'],
+        ['Буцах', 'return'],
+    ];
+    ?>
+    <section class="tr-card">
+        <div class="flex items-center gap-3.5">
+            <span class="tr-sec-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <div><h2 class="text-lg font-bold m-0">Хөдлөх цаг, байршил</h2><p class="m-0 mt-0.5 text-[13px] text-slate-500 dark:text-[#8b93a1]">Хаанаас, хэдэн цагт хөдлөх вэ — хүсэлт гаргасан ажилтнуудад харагдана</p></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <?php foreach ($scheduleParts as [$label, $key]): ?>
+            <div class="tr-group">
+                <div class="tr-gtitle"><?= $label ?></div>
+                <?php if ($editable): ?>
+                <div class="grid grid-cols-1 sm:grid-cols-[1.4fr_1fr] gap-2.5">
+                    <div><label class="tr-lbl-sub block mb-1.5" for="<?= $key ?>_location"><?= $label ?> газар</label>
+                        <input id="<?= $key ?>_location" class="tr-inp sm" type="text" maxlength="255" placeholder="Жишээ: Төв оффисын урд" value="<?= htmlspecialchars($order[$key . '_location'] ?? '') ?>"></div>
+                    <div><label class="tr-lbl-sub block mb-1.5" for="<?= $key ?>_at"><?= $label ?> цаг</label>
+                        <input id="<?= $key ?>_at" class="tr-inp sm" type="datetime-local" value="<?= htmlspecialchars($dtInput($order[$key . '_at'] ?? null)) ?>"></div>
+                </div>
+                <?php else: ?>
+                <div class="tr-srow"><span>Газар</span><span><?= htmlspecialchars($order[$key . '_location'] ?: '—') ?></span></div>
+                <div class="tr-srow"><span>Цаг</span><span><?= $order[$key . '_at'] ? htmlspecialchars(substr($order[$key . '_at'], 0, 16)) : '—' ?></span></div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+
     <section class="tr-card !p-0 overflow-hidden">
         <div class="flex items-center justify-between gap-4 flex-wrap px-7 py-6 border-b border-slate-100 dark:border-[#2a2f3b]">
             <div class="flex items-center gap-3.5">
@@ -396,6 +428,14 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
   var viewMode = 'cards';
   var TM_EDITABLE = <?= $editable ? 'true' : 'false' ?>;
   var FUEL_TYPES = <?= json_encode(TRANSPORT_FUEL_TYPES) ?>;
+  var RENTAL_COMPANIES = <?= json_encode(TRANSPORT_RENTAL_COMPANIES, JSON_UNESCAPED_UNICODE) ?>;
+  // Түрээсийн компанийн сонголт — зөвхөн "Гадны түрээс" үед идэвхтэй; жагсаалтад байхгүй хуучин утгыг хадгална
+  function companySel(c, cls) {
+    var list = RENTAL_COMPANIES.slice();
+    if (c.rental_company && list.indexOf(c.rental_company) < 0) list.push(c.rental_company);
+    return '<select' + (cls ? ' class="' + cls + '"' : '') + ((TM_EDITABLE && c.is_rented) ? '' : ' disabled') + ' data-car="' + c.uid + '" data-k="rental_company"><option value="">Компани сонгох</option>' +
+      list.map(function (n) { return '<option value="' + esc(n) + '"' + (c.rental_company === n ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select>';
+  }
   var TYPES = <?= json_encode(array_map(function ($typeId, $t) { return array_merge(['id' => $typeId], $t); }, array_keys(TRANSPORT_VEHICLE_TYPES), TRANSPORT_VEHICLE_TYPES)) ?>;
   var cars = <?= json_encode($fulfillmentUnitsForJs) ?>;
 
@@ -434,7 +474,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">' +
           '<div class="tr-group"><div class="tr-gtitle"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>Түрээс</div>' +
             '<div><span class="tr-lbl-sub block mb-1.5">Түрээсийн төрөл</span><div class="tr-seg-wrap"><button type="button" class="tr-seg flex-1' + (c.is_rented ? '' : ' on') + '"' + dis() + ' data-car="' + c.uid + '" data-rented="0">Байгууллагын машин</button><button type="button" class="tr-seg flex-1' + (c.is_rented ? ' on' : '') + '"' + dis() + ' data-car="' + c.uid + '" data-rented="1">Гадны түрээс</button></div></div>' +
-            field(c, 'rental_company', 'Түрээсийн компани', { ph: 'Компанийн нэр' }) +
+            '<div><label class="tr-lbl-sub block mb-1.5">Түрээсийн компани</label>' + companySel(c, 'tr-inp sm') + '</div>' +
             '<div class="grid grid-cols-[1fr_1.3fr_1.4fr] gap-2.5 items-end">' + field(c, 'rental_days', 'Хоног', { type: 'number' }) + field(c, 'rental_rate', 'Өдрийн үнэ', { type: 'number', unit: '₮' }) +
             '<div><span class="tr-lbl-sub block mb-1.5">Түрээсийн дүн</span><div class="tr-readout" data-out="rent' + c.uid + '">' + fmt(r.rent) + '</div></div></div>' +
             (!c.is_rented ? '<p class="text-xs text-slate-400 dark:text-[#5a6172] m-0">Байгууллагын өөрийн машин тул түрээсийн төлбөр тооцохгүй.</p>' : '') +
@@ -470,7 +510,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
       return '<tr>' +
         '<td class="tr-tm-ro">' + esc(c.model) + (multi ? ' #' + c.unit_index : '') + '<br><span class="text-[11px] font-normal text-slate-400 dark:text-[#5a6172]">' + esc(c.meta) + '</span></td>' +
         '<td><select' + dis() + ' data-car="' + c.uid + '" data-k="is_rented"><option value="0"' + (c.is_rented ? '' : ' selected') + '>Байгууллагын</option><option value="1"' + (c.is_rented ? ' selected' : '') + '>Гадны түрээс</option></select></td>' +
-        '<td>' + tinp(c, 'rental_company') + '</td>' +
+        '<td>' + companySel(c, '') + '</td>' +
         '<td>' + tinp(c, 'plate') + '</td>' +
         '<td>' + tinp(c, 'driver') + '</td>' +
         '<td>' + tinp(c, 'phone', { type: 'tel' }) + '</td>' +
@@ -579,6 +619,8 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
     $.post('<?= BASE_URL ?>/modules/transport/ajax.php', {
       action: 'order_save_vehicles', id: <?= (int)$id ?>,
       note: $('#tmNote').val().trim(), vehicles: JSON.stringify(vehicles), units: JSON.stringify(units),
+      depart_location: $('#depart_location').val().trim(), depart_at: $('#depart_at').val(),
+      return_location: $('#return_location').val().trim(), return_at: $('#return_at').val(),
     }, function (r) {
       showToast(r.message || (r.success ? 'Амжилттай' : 'Алдаа'), r.success ? 'success' : 'error');
       if (r.success) setTimeout(function () { location.reload(); }, 700);

@@ -5,6 +5,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/auth.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/evaluator.php';
 requireLogin();
 include $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/header.php';
 $pdo = getDB();
@@ -12,6 +13,20 @@ $me  = currentUser();
 $myEmployeeId = (int)$me['id'];
 
 $periods = $pdo->query("SELECT * FROM kpi2_periods WHERE is_active=1 ORDER BY start_date DESC")->fetchAll();
+
+// Өөрийн нэгжийн ажлын багц батлагдсан хугацаанд KPI2 хуудас байхгүй бол үүсгэнэ
+// (энэ дүрэм гарахаас өмнө батлагдсан багцад ажил оноогдоогүй ажилтнуудыг нөхнө)
+$missing = $pdo->prepare("
+    SELECT b.period_id FROM kpi2_task_batches b
+    JOIN employees e ON e.org_unit_id = b.org_unit_id
+    JOIN kpi2_periods p ON p.id = b.period_id AND p.is_active = 1
+    WHERE e.id = ? AND e.is_active = 1 AND b.status = 'approved'
+      AND NOT EXISTS (SELECT 1 FROM kpi2_evaluations ev WHERE ev.employee_id = e.id AND ev.period_id = b.period_id)
+");
+$missing->execute([$myEmployeeId]);
+foreach ($missing->fetchAll(PDO::FETCH_COLUMN) as $periodId) {
+    kpi2EnsureEvaluation($pdo, (int)$periodId, $myEmployeeId);
+}
 
 $mine = $pdo->prepare("SELECT ev.*, p.name as period_name, p.start_date, p.end_date
                         FROM kpi2_evaluations ev JOIN kpi2_periods p ON p.id = ev.period_id
@@ -78,7 +93,7 @@ usort($rows, fn($a, $b) => strcmp($b['start_date'], $a['start_date']));
                     <?php if ($e): ?>
                         <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium <?= $statusColors[$e['status']] ?>"><?= KPI2_STATUS_LABELS[$e['status']] ?></span>
                     <?php else: ?>
-                        <span class="text-slate-300 dark:text-[#5a6172] text-xs">Ажил хараахан ноогдоогүй</span>
+                        <span class="text-slate-300 dark:text-[#5a6172] text-xs">Хэлтсийн төлөвлөгөө хараахан батлагдаагүй</span>
                     <?php endif; ?>
                 </td>
                 <td class="px-6 py-4 text-right font-semibold <?= ($e && $e['status'] === 'completed') ? 'text-[#f1592a]' : 'text-slate-300 dark:text-[#5a6172]' ?>">

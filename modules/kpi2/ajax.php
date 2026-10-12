@@ -383,11 +383,9 @@ try {
             $tasks->execute([$batchId]);
             $taskRows = $tasks->fetchAll();
 
-            $findEval  = $pdo->prepare("SELECT id FROM kpi2_evaluations WHERE employee_id=? AND period_id=?");
-            $empInfo   = $pdo->prepare("SELECT position, org_unit_id FROM employees WHERE id=?");
-            $unitName  = $pdo->prepare("SELECT name FROM org_units WHERE id=?");
-            $createEval = $pdo->prepare("INSERT INTO kpi2_evaluations (period_id, employee_id, evaluator_id, position_snapshot, org_unit_snapshot, status)
-                                          VALUES (?,?,?,?,?, 'planning')");
+            // Нэгжийн бүх ажилтанд KPI2 хуудас үүсгэнэ — ажил оноогдоогүй ажилтан ч өөрийн KPI-гаа төлөвлөж болно
+            kpi2EnsureEvaluationsForUnit($pdo, (int)$batch['period_id'], (int)$batch['org_unit_id']);
+
             $insertItem = $pdo->prepare("INSERT IGNORE INTO kpi2_items
                 (evaluation_id, section, org_task_id, share_percent, sort_order, title, kpi_target, frequency, metric, importance_weight, difficulty_weight)
                 VALUES (?, 'core_duty', ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -396,22 +394,7 @@ try {
                 $assigns = $pdo->prepare("SELECT * FROM kpi2_org_task_assignments WHERE org_task_id=?");
                 $assigns->execute([$task['id']]);
                 foreach ($assigns->fetchAll() as $assign) {
-                    $employeeId = (int)$assign['employee_id'];
-
-                    $findEval->execute([$employeeId, $batch['period_id']]);
-                    $evalId = $findEval->fetchColumn();
-                    if (!$evalId) {
-                        $empInfo->execute([$employeeId]);
-                        $emp = $empInfo->fetch();
-                        $unitNameVal = null;
-                        if ($emp && $emp['org_unit_id']) {
-                            $unitName->execute([$emp['org_unit_id']]);
-                            $unitNameVal = $unitName->fetchColumn() ?: null;
-                        }
-                        $evaluatorId = kpi2ResolveEvaluator($pdo, $emp['org_unit_id'] ? (int)$emp['org_unit_id'] : null, $employeeId);
-                        $createEval->execute([$batch['period_id'], $employeeId, $evaluatorId, $emp['position'] ?? null, $unitNameVal]);
-                        $evalId = (int)$pdo->lastInsertId();
-                    }
+                    $evalId = kpi2EnsureEvaluation($pdo, (int)$batch['period_id'], (int)$assign['employee_id']);
 
                     $insertItem->execute([
                         $evalId, $task['id'], $assign['percent'], (int)$task['sort_order'],
@@ -483,14 +466,19 @@ try {
             $pdo->prepare("INSERT INTO kpi2_unit_roles (org_unit_id, employee_id, role) VALUES (?,?,?)
                            ON DUPLICATE KEY UPDATE employee_id=VALUES(employee_id)")
                 ->execute([$orgUnitId, $employeeId, $role]);
-            echo json_encode(['success' => true, 'message' => 'Тохируулагдлаа.']);
+            $resynced = kpi2ResyncEvaluators($pdo, $orgUnitId);
+            echo json_encode(['success' => true, 'message' => 'Тохируулагдлаа.' . ($resynced ? " Батлагдаагүй {$resynced} хуудасны батлагч шинэчлэгдлээ." : '')]);
             break;
 
         case 'unit_role_remove':
             requireRole('superadmin', 'hr');
             $id = intval($_POST['id'] ?? 0);
+            $unitStmt = $pdo->prepare("SELECT org_unit_id FROM kpi2_unit_roles WHERE id=?");
+            $unitStmt->execute([$id]);
+            $removedUnitId = (int)$unitStmt->fetchColumn();
             $pdo->prepare("DELETE FROM kpi2_unit_roles WHERE id=?")->execute([$id]);
-            echo json_encode(['success' => true, 'message' => 'Хасагдлаа.']);
+            $resynced = $removedUnitId ? kpi2ResyncEvaluators($pdo, $removedUnitId) : 0;
+            echo json_encode(['success' => true, 'message' => 'Хасагдлаа.' . ($resynced ? " Батлагдаагүй {$resynced} хуудасны батлагч шинэчлэгдлээ." : '')]);
             break;
 
         default:

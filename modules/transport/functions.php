@@ -4,13 +4,20 @@
 // "Шууд удирдлага" гэдгийг одоо байгаа KPI-ийн үнэлэгч тооцооллоор (org_units-ийн удирдагчийн шат) ашиглана
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/modules/kpi/evaluator_sync.php';
 
-const TRANSPORT_PURPOSE_OPTIONS = ['14/14 ростер', '7/7 ростер', '5/2 ээлж', '3/2 ээлж', 'Ашиглалтын ээлж', 'Уулын ээлж'];
+const TRANSPORT_PURPOSE_OPTIONS = ['14/14 ростер', '7/7 ростер', '5/2 ээлж', '3/2 ээлж', 'Ашиглалтын ээлж', 'Уулын ээлж', 'Бусад'];
+
+/** Зорчигчийн хоолны байршил (key нь transport_request_passengers.meal_location-тай тохирно) */
+const TRANSPORT_MEAL_LOCATIONS = ['station' => 'Станц', 'camp' => 'Кемп', 'other' => 'Бусад'];
 
 /** Машины төрлийн каталог — DB биш, шууд hardcode (key нь transport_request_vehicles.vehicle_type_id-тай тохирно) */
 const TRANSPORT_VEHICLE_TYPES = [
     'lx' => ['name' => 'LX470',            'full' => 'Lexus LX470',   'meta' => '7 зорчигч', 'seats' => 7, 'kind' => 'suv'],
     'lc' => ['name' => 'Land Cruiser 200', 'full' => 'Toyota LC200',  'meta' => '7 зорчигч', 'seats' => 7, 'kind' => 'suv'],
+    'b45' => ['name' => 'Автобус 45',      'full' => 'Автобус (45 хүний)', 'meta' => '45 зорчигч', 'seats' => 45, 'kind' => 'bus'],
 ];
+
+/** Гадны түрээсийн компаниуд (transport_*_units.rental_company-д нэрээр нь хадгална) — ТЕСТ ӨГӨГДӨЛ, бодитоор солино */
+const TRANSPORT_RENTAL_COMPANIES = ['company1', 'company2', 'company3'];
 
 /** Тээвэр хариуцсан менежерийн дуусгах маягтын түлшний төрөл (key нь transport_vehicle_units.fuel_type-тай тохирно) */
 const TRANSPORT_FUEL_TYPES = ['benz' => 'Бензин', 'diesel' => 'Дизель'];
