@@ -62,7 +62,8 @@
       : '<span class="kpi-row__score is-empty">—</span>';
     var inner =
       '<span class="kpi-row__idx">' + esc(emp.idx) + "</span>" +
-      '<span class="kpi-row__who"><span class="kpi-row__name">' + esc(emp.name) + '</span><span class="kpi-row__id">' + esc(emp.id) + "</span></span>" +
+      '<span class="kpi-row__who' + (emp.lead ? " is-lead" : "") + '"><span class="kpi-row__line"><span class="kpi-row__name">' + esc(emp.name) + '</span><span class="kpi-row__id">' + esc(emp.id) + "</span></span>" +
+        (emp.position ? '<span class="kpi-row__pos" title="' + esc(emp.position) + '">' + esc(emp.position) + "</span>" : "") + "</span>" +
       stepper(emp.state, emp.dates) + chip(emp.state) +
       '<span class="kpi-row__wait">' + wait + "</span>" + score + (emp.href ? CHEVRON : "<span></span>");
     return emp.href

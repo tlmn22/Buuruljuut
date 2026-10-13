@@ -80,6 +80,29 @@ function kpi2DaysSince(?string $ts): ?int {
     return (int)$diff->days;
 }
 
+/**
+ * Албан тушаалын удирдах түвшин — бага тоо нь жагсаалтын дээр гарна.
+ * "захирлын" (жишээ нь "Жолооч /захирлын/") нь "захирал" гэсэн дэд мөр агуулдаггүй тул удирдлагад тооцогдохгүй.
+ */
+function kpi2PositionRank(?string $position): int {
+    $p = mb_strtolower((string)$position, 'UTF-8');
+    if ($p === '') return 9;
+    if (mb_strpos($p, 'захирал') !== false) return mb_strpos($p, 'орлогч') !== false ? 1 : 0;
+    foreach (['дарга' => 2, 'менежер' => 3, 'ахлах' => 4] as $kw => $rank) {
+        if (mb_strpos($p, $kw) !== false) return $rank;
+    }
+    return 5;
+}
+
+/** Хэлтсийн ажилтнуудыг удирдах түвшин, дараа нь овог нэрээр эрэмбэлнэ */
+function kpi2SortByPosition(array $emps): array {
+    usort($emps, function ($a, $b) {
+        return [kpi2PositionRank($a['position']), $a['last_name'], $a['first_name']]
+           <=> [kpi2PositionRank($b['position']), $b['last_name'], $b['first_name']];
+    });
+    return $emps;
+}
+
 function kpi2TeamEmployee(array $r, int $idx, int $myEmployeeId): array {
     $state = kpi2TeamState($r);
     $stageStart = [
@@ -94,6 +117,8 @@ function kpi2TeamEmployee(array $r, int $idx, int $myEmployeeId): array {
         'idx'    => $idx,
         'name'   => $r['last_name'] . '. ' . $r['first_name'],
         'id'     => $r['employee_code'],
+        'position' => $r['position'],
+        'lead'   => kpi2PositionRank($r['position']) <= 4,
         'state'  => $state,
         'days'   => kpi2DaysSince($stageStart),
         'mine'   => $isEvaluator && in_array($state, ['approve', 'mgr-eval'], true),
@@ -130,7 +155,7 @@ foreach ($unitRows as $u) {
 
 /** Дээд нэгж бүрийн доорх ажилтантай нэгжүүдийг (өөрийг нь оруулан) мод дарааллаар хавтгайруулна */
 function kpi2CollectDepts(array $unit, array $unitsByParent, array $employeesByUnit, int $depth, int $myEmployeeId, array &$out): void {
-    $emps = $employeesByUnit[(int)$unit['id']] ?? [];
+    $emps = kpi2SortByPosition($employeesByUnit[(int)$unit['id']] ?? []);
     if ($emps) {
         $list = [];
         foreach ($emps as $i => $r) $list[] = kpi2TeamEmployee($r, $i + 1, $myEmployeeId);
@@ -149,11 +174,11 @@ foreach ($unitsByParent[0] ?? [] as $rootUnit) {
 }
 if ($unassigned) {
     $list = [];
-    foreach ($unassigned as $i => $r) $list[] = kpi2TeamEmployee($r, $i + 1, $myEmployeeId);
+    foreach (kpi2SortByPosition($unassigned) as $i => $r) $list[] = kpi2TeamEmployee($r, $i + 1, $myEmployeeId);
     $cards[] = ['title' => 'Нэгж тодорхойгүй', 'depts' => [['title' => 'Нэгж тодорхойгүй', 'depth' => 0, 'emps' => $list]]];
 }
 ?>
-<link rel="stylesheet" href="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.css?v=4">
+<link rel="stylesheet" href="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.css?v=5">
 
 <div class="kpi-root">
     <div>
@@ -193,7 +218,7 @@ if ($unassigned) {
 </div>
 
 <?php if ($cards): ?>
-<script src="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.js?v=2"></script>
+<script src="<?= BASE_URL ?>/modules/kpi2/assets/kpi2-status.js?v=3"></script>
 <script>
 (function () {
   var CARDS_DATA = <?= json_encode($cards, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;

@@ -112,10 +112,6 @@ $passengersForJs = array_map(function ($p) {
         'org' => (string)$p['organization'],
         'pos' => (string)$p['position'],
         'unit' => (string)$p['unit_name'],
-        'loc' => (string)($p['meal_location'] ?? ''),
-        'b' => (bool)$p['food_morning'],
-        'l' => (bool)$p['food_lunch'],
-        'd' => (bool)$p['food_dinner'],
     ];
 }, $passengers);
 
@@ -197,10 +193,6 @@ html.dark .tr-seg-wrap{background:#272c38}
 html.dark .tr-seg{color:#8b93a1}
 .tr-seg.on{background:#fff;color:#1c2430;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 html.dark .tr-seg.on{background:#1c212b;color:#f2f3f6}
-.tr-meal{display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;font:inherit;font-size:13px;font-weight:600;color:#64748b;cursor:pointer}
-html.dark .tr-meal{background:#272c38;border-color:#2a2f3b;color:#8b93a1}
-.tr-meal.on{background:#fcede6;border-color:#f1592a;color:#9e3616}
-html.dark .tr-meal.on{background:#2a1810;color:#ff8a5c}
 .tr-icon-btn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;color:#64748b;cursor:pointer;flex-shrink:0}
 html.dark .tr-icon-btn{color:#8b93a1}
 .tr-icon-btn:hover{background:#fbeaea;color:#b42318}
@@ -215,8 +207,6 @@ html.dark .tr-btn-ghost{border-color:#2a2f3b;background:#272c38;color:#f2f3f6}
 html.dark .tr-add-row{border-color:#3a4151;color:#ff8a5c}
 .tr-add-row:hover{background:#fcf3ef}
 html.dark .tr-add-row:hover{background:#241814}
-.tr-link-btn{border:0;background:transparent;font:inherit;font-size:12px;font-weight:600;color:#c9481f;cursor:pointer;padding:4px 6px;border-radius:6px}
-html.dark .tr-link-btn{color:#ff8a5c}
 .tr-item{border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px;background:#fdfcfa}
 html.dark .tr-item{border-color:#2a2f3b;background:#20242e}
 .tr-num{width:28px;height:28px;flex-shrink:0;border-radius:50%;background:#f1f5f9;font-size:13px;font-weight:700;color:#3a3c42;display:flex;align-items:center;justify-content:center}
@@ -241,16 +231,6 @@ html.dark .tr-srow span:first-child{color:#8b93a1}
 .tr-srow span:last-child{font-weight:600;text-align:right}
 .tr-hr{height:1px;background:#e2e8f0}
 html.dark .tr-hr{background:#2a2f3b}
-.tr-mgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.tr-mgrid div{background:#f7f6f3;border-radius:10px;padding:10px 12px}
-html.dark .tr-mgrid div{background:#20242e}
-.tr-mgrid small{font-size:12px;color:#64748b;display:block}
-html.dark .tr-mgrid small{color:#8b93a1}
-.tr-mgrid b{font-size:22px}
-.tr-portions{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border-radius:10px;background:#fcede6;color:#9e3616}
-html.dark .tr-portions{background:#2a1810;color:#ff8a5c}
-.tr-portions span{font-size:13px;font-weight:600}
-.tr-portions b{font-size:20px}
 .tr-check{display:flex;gap:10px;align-items:center;font-size:13px;color:#3a3c42}
 html.dark .tr-check{color:#c9cdd6}
 .tr-check i{width:20px;height:20px;border-radius:50%;border:1.5px solid #cbd5e1;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;font-weight:700;color:transparent;flex-shrink:0}
@@ -306,7 +286,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                 <span class="text-[#1c2430] dark:text-[#f2f3f6] font-medium"><?= $req ? 'Захиалга #' . (int)$req['id'] : 'Шинэ захиалга' ?></span>
             </nav>
             <h1 class="text-3xl font-bold m-0"><?= $req ? 'Захиалга #' . (int)$req['id'] : 'Шинэ тээврийн захиалга' ?></h1>
-            <p class="m-0 text-[15px] text-slate-500 dark:text-[#8b93a1]">Аяллын мэдээлэл, зорчих ажилтнууд, автомашин болон хоолны захиалгаа нэг дор бүртгэнэ.</p>
+            <p class="m-0 text-[15px] text-slate-500 dark:text-[#8b93a1]">Аяллын мэдээлэл, зорчих ажилтнууд болон автомашины захиалгаа нэг дор бүртгэнэ.</p>
         </div>
         <?php if ($req): ?>
         <span class="px-3 py-1.5 rounded-full text-sm font-medium <?= TRANSPORT_STATUS_COLORS[$req['status']] ?>"><?= TRANSPORT_STATUS_LABELS[$req['status']] ?></span>
@@ -422,15 +402,26 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                     <svg class="tr-sec-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                 </div>
                 <div class="tr-sec-body">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <?php $curPurpose = $req['travel_purpose'] ?? ''; $curGroup = transportPurposeGroup($curPurpose); ?>
+                <div class="grid grid-cols-1 md:grid-cols-[1.6fr_1fr_1fr] gap-5">
                     <div><label class="tr-lbl" for="route">Аяллын чиглэл <span class="text-red-500">*</span></label>
                         <input id="route" class="tr-inp" type="text" placeholder="Жишээ: Төв аймаг — Голомт агуулах" <?= $editable ? '' : 'disabled' ?> value="<?= htmlspecialchars($req['travel_direction'] ?? '') ?>"></div>
-                    <div><label class="tr-lbl" for="purpose">Аяллын зорилго <span class="text-red-500">*</span></label>
-                        <select id="purpose" class="tr-inp" <?= $editable ? '' : 'disabled' ?>>
-                            <option value="">Зорилго сонгох</option>
-                            <?php foreach (TRANSPORT_PURPOSE_OPTIONS as $opt): ?>
-                                <option value="<?= htmlspecialchars($opt) ?>" <?= ($req['travel_purpose'] ?? '') === $opt ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
+                    <div><label class="tr-lbl" for="purposeGroup">Аяллын төрөл <span class="text-red-500">*</span></label>
+                        <select id="purposeGroup" class="tr-inp" <?= $editable ? '' : 'disabled' ?>>
+                            <option value="">Төрөл сонгох</option>
+                            <?php foreach (array_keys(TRANSPORT_PURPOSE_GROUPS) as $grp): ?>
+                                <option value="<?= htmlspecialchars($grp) ?>" <?= $curGroup === $grp ? 'selected' : '' ?>><?= htmlspecialchars($grp) ?></option>
                             <?php endforeach; ?>
+                        </select></div>
+                    <div><label class="tr-lbl" for="purpose">Аяллын зорилго <span class="text-red-500">*</span></label>
+                        <select id="purpose" class="tr-inp" <?= ($editable && $curGroup) ? '' : 'disabled' ?>>
+                            <option value=""><?= $curGroup ? 'Зорилго сонгох' : 'Эхлээд төрлөө сонгоно уу' ?></option>
+                            <?php foreach (TRANSPORT_PURPOSE_GROUPS[$curGroup] ?? [] as $opt): ?>
+                                <option value="<?= htmlspecialchars($opt) ?>" <?= $curPurpose === $opt ? 'selected' : '' ?>><?= htmlspecialchars($opt) ?></option>
+                            <?php endforeach; ?>
+                            <?php if ($curPurpose !== '' && $curGroup === ''): ?>
+                                <option value="<?= htmlspecialchars($curPurpose) ?>" selected><?= htmlspecialchars($curPurpose) ?></option>
+                            <?php endif; ?>
                         </select></div>
                 </div>
                 <div class="grid grid-cols-2 lg:grid-cols-[1fr_1fr_180px_180px] gap-5 items-start">
@@ -446,22 +437,14 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                 </div>
             </section>
 
-            <!-- 2. Зорчигчид ба хоол -->
+            <!-- 2. Зорчигчид -->
             <section class="tr-card">
                 <div class="flex justify-between items-center gap-4 flex-wrap tr-sec-head" onclick="toggleSection(this)">
                     <div class="flex items-center gap-3.5">
                         <span class="tr-sec-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.3-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.8c2 .7 3.2 2.5 3.5 5.2"/></svg></span>
-                        <div><h2 class="text-lg font-bold m-0">2. Зорчигчид ба хоол</h2><p class="m-0 mt-0.5 text-[13px] text-slate-500 dark:text-[#8b93a1]">Ажилтныг нэрээр хайхад албан тушаал, нэгж автоматаар бөглөгдөнө</p></div>
+                        <div><h2 class="text-lg font-bold m-0">2. Зорчигчид</h2><p class="m-0 mt-0.5 text-[13px] text-slate-500 dark:text-[#8b93a1]">Ажилтныг нэрээр хайхад албан тушаал, нэгж автоматаар бөглөгдөнө</p></div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <?php if ($editable): ?>
-                        <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#8b93a1]" onclick="event.stopPropagation()">
-                            <span>Бүгдэд тэмдэглэх:</span>
-                            <button type="button" class="tr-link-btn" data-all="b">Өглөө</button>
-                            <button type="button" class="tr-link-btn" data-all="l">Өдөр</button>
-                            <button type="button" class="tr-link-btn" data-all="d">Орой</button>
-                        </div>
-                        <?php endif; ?>
                         <svg class="tr-sec-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                     </div>
                 </div>
@@ -506,13 +489,6 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                     <div class="tr-srow"><span>Автомашин</span><span id="sCars">1 ширхэг</span></div>
                     <div class="tr-srow"><span>Суудлын багтаамж</span><span id="sCap">0</span></div>
                 </div>
-                <div class="tr-hr"></div>
-                <div class="flex flex-col gap-2.5">
-                    <span class="text-[13px] font-semibold text-[#3a3c42] dark:text-[#c9cdd6]">Хоол (өдөрт)</span>
-                    <div class="tr-mgrid"><div><small>Өглөө</small><b id="cB">0</b></div><div><small>Өдөр</small><b id="cL">0</b></div><div><small>Орой</small><b id="cD">0</b></div></div>
-                    <div class="tr-portions"><span>Нийт порц</span><b id="portions">0</b></div>
-                </div>
-
                 <?php if ($editable): ?>
                     <div class="tr-hr"></div>
                     <div class="flex flex-col gap-2" id="checks"></div>
@@ -592,7 +568,6 @@ function toggleSection(head) {
   var AJAX = '<?= BASE_URL ?>/modules/transport/ajax.php';
   var REQ_ID = <?= (int)$id ?>;
 
-  var MEAL_LOCS = <?= json_encode(TRANSPORT_MEAL_LOCATIONS, JSON_UNESCAPED_UNICODE) ?>;
   var BUS_ICON ='<svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2" y="3" width="36" height="14" rx="2"/><path d="M2 10h36M8 3v7M15 3v7M22 3v7M29 3v7"/><circle cx="10" cy="18" r="3" fill="#fff"/><circle cx="30" cy="18" r="3" fill="#fff"/></svg>';
   var SUV_ICON ='<svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 17v-5l4-6h17l6 6h6a1 1 0 0 1 1 1v4z"/><path d="M10 6v6M21 6l1 6M3 12h34"/><circle cx="10" cy="18" r="3" fill="#fff"/><circle cx="30" cy="18" r="3" fill="#fff"/></svg>';
   var TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/></svg>';
@@ -608,7 +583,7 @@ function toggleSection(head) {
     cars: <?= json_encode($vehiclesForJs) ?>
   };
   var rid = st.rows.reduce(function (m, r) { return Math.max(m, r.id || 0); }, 0);
-  function newRow() { return { id: ++rid, guest: false, employee_id: null, name: '', org: '', pos: '', unit: '', loc: '', b: false, l: false, d: false }; }
+  function newRow() { return { id: ++rid, guest: false, employee_id: null, name: '', org: '', pos: '', unit: '' }; }
   if (!st.rows.length && EDITABLE) st.rows.push(newRow());
 
   function $(id) { return document.getElementById(id); }
@@ -632,10 +607,6 @@ function toggleSection(head) {
       function f(key, label) {
         return '<div><span class="tr-lbl-sub block mb-1.5">' + label + '</span><input class="tr-inp sm" type="text" placeholder="' + (r.guest ? 'Бичих' : 'Автоматаар бөглөгдөнө') + '"' + ro + dis() + ' data-row="' + r.id + '" data-field="' + key + '" value="' + esc(r[key]) + '"></div>';
       }
-      function m(k, label) { return '<button type="button" class="tr-meal' + (r[k] ? ' on' : '') + '"' + dis() + ' data-row="' + r.id + '" data-meal="' + k + '">' + label + '</button>'; }
-      var locErr = (r.b || r.l || r.d) && !r.loc;
-      var loc = '<select class="tr-inp sm' + (locErr ? ' err' : '') + '" style="width:auto;min-width:96px"' + dis() + ' data-row="' + r.id + '" data-field="loc"><option value="">Байршил</option>' +
-        Object.keys(MEAL_LOCS).map(function (k) { return '<option value="' + k + '"' + (r.loc === k ? ' selected' : '') + '>' + esc(MEAL_LOCS[k]) + '</option>'; }).join('') + '</select>';
       return '<div class="tr-item"><div class="flex gap-3 items-center flex-wrap">' +
         '<span class="tr-num">' + (i + 1) + '</span>' +
         '<div class="tr-seg-wrap">' +
@@ -644,8 +615,7 @@ function toggleSection(head) {
         '<div class="tr-search relative flex-1" style="min-width:200px">' + SEARCH_ICON + '<input class="tr-inp pax-name-search" type="text" autocomplete="off" placeholder="' + (r.guest ? 'Зочны овог, нэр' : 'Ажилтныг нэр эсвэл кодоор хайх…') + '"' + dis() + ' data-row="' + r.id + '" data-field="name" value="' + esc(r.name) + '">' +
         '<div class="typeahead-results hidden absolute z-20 mt-1 w-full bg-white dark:bg-[#1c212b] border border-slate-200 dark:border-[#2a2f3b] rounded-lg shadow-lg max-h-52 overflow-y-auto"></div></div>' +
         (EDITABLE ? '<button type="button" class="tr-icon-btn" data-del-row="' + r.id + '"' + (one ? ' disabled' : '') + '>' + TRASH + '</button>' : '') +
-        '</div><div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end sm:pl-[52px]">' + f('org', 'Байгууллага') + f('pos', 'Албан тушаал') + f('unit', 'Газар, нэгж / хэлтэс') +
-        '<div><span class="tr-lbl-sub block mb-1.5">Хоол</span><div class="flex flex-nowrap items-center gap-1.5">' + loc + m('b', 'Өглөө') + m('l', 'Өдөр') + m('d', 'Орой') + '</div></div>' +
+        '</div><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end sm:pl-[52px]">' + f('org', 'Байгууллага') + f('pos', 'Албан тушаал') + f('unit', 'Газар, нэгж / хэлтэс') +
         '</div></div>';
     }).join('');
   }
@@ -681,23 +651,16 @@ function toggleSection(head) {
     var pill = $('capPill'), capOk = cap >= st.rows.length;
     pill.className = 'tr-pill' + (cap ? (capOk ? ' ok' : ' bad') : '');
     pill.textContent = cap ? 'Багтаамж ' + cap + ' · Зорчигч ' + st.rows.length + (capOk ? '' : ' — суудал хүрэлцэхгүй') : 'Зорчигч ' + st.rows.length;
-    var cB = 0, cL = 0, cD = 0;
-    st.rows.forEach(function (r) { if (r.b) cB++; if (r.l) cL++; if (r.d) cD++; });
-    $('cB').textContent = cB; $('cL').textContent = cL; $('cD').textContent = cD;
-    $('portions').textContent = (cB + cL + cD) * (dd.d || 1);
-
     var tripOk = !!((st.route || '').trim() && st.purpose && dd.d);
-    var namesOk = st.rows.every(function (r) { return (r.name || '').trim(); });
-    var mealLocOk = st.rows.every(function (r) { return !(r.b || r.l || r.d) || r.loc; });
-    var peopleOk = namesOk && mealLocOk;
+    var peopleOk = st.rows.every(function (r) { return (r.name || '').trim(); });
     var carsOk = st.cars.some(function (c) { return c.qty > 0; });
     if ($('checks')) {
-      var checks = [[!!(st.route || '').trim(), 'Аяллын чиглэл'], [!!st.purpose, 'Аяллын зорилго'], [!!dd.d, 'Эхлэх, дуусах огноо'], [namesOk, 'Зорчигчдын нэр'], [mealLocOk, 'Хоолны байршил'], [carsOk, 'Машины төрөл']];
+      var checks = [[!!(st.route || '').trim(), 'Аяллын чиглэл'], [!!st.purpose, 'Аяллын зорилго'], [!!dd.d, 'Эхлэх, дуусах огноо'], [peopleOk, 'Зорчигчдын нэр'], [carsOk, 'Машины төрөл']];
       $('checks').innerHTML = checks.map(function (c) { return '<div class="tr-check"><i class="' + (c[0] ? 'ok' : '') + '">✓</i><span>' + c[1] + '</span></div>'; }).join('');
     }
     if ($('submit')) $('submit').disabled = !(tripOk && peopleOk && carsOk);
     if ($('steps')) {
-      var steps = [['Аялал', tripOk], ['Зорчигчид ба хоол', peopleOk], ['Автомашин', carsOk]];
+      var steps = [['Аялал', tripOk], ['Зорчигчид', peopleOk], ['Автомашин', carsOk]];
       $('steps').innerHTML = steps.map(function (s, i) { return '<div class="tr-step"><span class="tr-dot' + (s[1] ? ' done' : '') + '">' + (s[1] ? '✓' : i + 1) + '</span>' + s[0] + '</div>'; }).join('');
     }
   }
@@ -708,6 +671,16 @@ function toggleSection(head) {
     el.addEventListener('input', function (e) { st[k] = e.target.value; if (k === 'start') $('end').min = e.target.value; renderSummary(); });
     el.addEventListener('change', function (e) { st[k] = e.target.value; renderSummary(); });
   });
+  // Аяллын төрөл солиход зорилгын жагсаалтыг тухайн төрлийнхөөр дахин бөглөж, сонгосон зорилгыг цэвэрлэнэ
+  var PURPOSE_GROUPS = <?= json_encode(TRANSPORT_PURPOSE_GROUPS, JSON_UNESCAPED_UNICODE) ?>;
+  if ($('purposeGroup')) $('purposeGroup').addEventListener('change', function (e) {
+    var list = PURPOSE_GROUPS[e.target.value] || [], sel = $('purpose');
+    sel.innerHTML = '<option value="">' + (e.target.value ? 'Зорилго сонгох' : 'Эхлээд төрлөө сонгоно уу') + '</option>' +
+      list.map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + '</option>'; }).join('');
+    sel.disabled = !EDITABLE || !e.target.value;
+    st.purpose = '';
+    renderSummary();
+  });
   if ($('addRow')) $('addRow').addEventListener('click', function () { st.rows.push(newRow()); renderRows(); renderSummary(); });
 
   $('rows').addEventListener('input', function (e) {
@@ -715,7 +688,6 @@ function toggleSection(head) {
     if (r && t.dataset.field) {
       r[t.dataset.field] = t.value;
       if (t.classList.contains('pax-name-search')) r.employee_id = null;
-      if (t.dataset.field === 'loc') renderRows();
       renderSummary();
     }
   });
@@ -724,15 +696,8 @@ function toggleSection(head) {
     var b = e.target.closest('button'); if (!b) return;
     var r = findRow(+b.dataset.row);
     if (b.dataset.guest != null && r) { r.guest = b.dataset.guest === '1'; renderRows(); }
-    else if (b.dataset.meal && r) { r[b.dataset.meal] = !r[b.dataset.meal]; renderRows(); }
     else if (b.dataset.delRow) { st.rows = st.rows.filter(function (x) { return x.id !== +b.dataset.delRow; }); renderRows(); }
     renderSummary();
-  });
-  document.querySelectorAll('[data-all]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      var k = b.dataset.all, on = !st.rows.every(function (r) { return r[k]; });
-      st.rows.forEach(function (r) { r[k] = on; }); renderRows(); renderSummary();
-    });
   });
   $('cars').addEventListener('click', function (e) {
     if (!EDITABLE) return;
@@ -792,7 +757,7 @@ function toggleSection(head) {
         travel_direction: st.route, travel_purpose: st.purpose, start_date: st.start, end_date: st.end,
         total_days: $('days').textContent === '—' ? 1 : $('days').textContent, total_km: st.km,
         passengers: JSON.stringify(st.rows.map(function (r) {
-          return { employee_id: r.employee_id, type: r.guest ? 'Зочин' : 'Ажилтан', full_name: r.employee_id ? '' : r.name, organization: r.org, position: r.pos, unit_name: r.unit, meal_location: r.loc || '', food_morning: r.b ? 1 : 0, food_lunch: r.l ? 1 : 0, food_dinner: r.d ? 1 : 0 };
+          return { employee_id: r.employee_id, type: r.guest ? 'Зочин' : 'Ажилтан', full_name: r.employee_id ? '' : r.name, organization: r.org, position: r.pos, unit_name: r.unit };
         })),
         vehicles: JSON.stringify(st.cars.filter(function (c) { return c.qty > 0; }).map(function (c) { return { vehicle_type_id: c.type, qty: c.qty }; }))
       };

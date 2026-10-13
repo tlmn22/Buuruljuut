@@ -103,7 +103,7 @@ try {
             $totalKm         = $_POST['total_km'] !== '' ? (float)$_POST['total_km'] : null;
 
             if ($travelDirection === '') throw new Exception('Аяллын чиглэлээ оруулна уу.');
-            if (!in_array($travelPurpose, TRANSPORT_PURPOSE_OPTIONS, true)) throw new Exception('Аяллын зорилгоо сонгоно уу.');
+            if (!in_array($travelPurpose, transportPurposeOptions(), true)) throw new Exception('Аяллын зорилгоо сонгоно уу.');
             if (!$startDate || !$endDate) throw new Exception('Эхлэх, дуусах огноог оруулна уу.');
             if ($endDate < $startDate) throw new Exception('Дуусах огноо эхлэх огнооноос өмнө байж болохгүй.');
 
@@ -138,14 +138,10 @@ try {
                 }
 
                 $insertPax = $pdo->prepare("INSERT INTO transport_request_passengers
-                    (request_id, employee_id, type, full_name, organization, position, unit_name, meal_location, food_morning, food_lunch, food_dinner, sort_order)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+                    (request_id, employee_id, type, full_name, organization, position, unit_name, sort_order)
+                    VALUES (?,?,?,?,?,?,?,?)");
                 foreach ($passengers as $i => $p) {
                     $empId = intval($p['employee_id'] ?? 0) ?: null;
-                    $mealLoc = $p['meal_location'] ?? '';
-                    $hasMeal = !empty($p['food_morning']) || !empty($p['food_lunch']) || !empty($p['food_dinner']);
-                    if ($mealLoc !== '' && !isset(TRANSPORT_MEAL_LOCATIONS[$mealLoc])) throw new Exception('Буруу хоолны байршил.');
-                    if ($hasMeal && $mealLoc === '') throw new Exception('Хоол сонгосон зорчигчийн хоолны байршлыг (Станц/Кемп/Бусад) сонгоно уу.');
                     $insertPax->execute([
                         $id, $empId,
                         trim($p['type'] ?? '') ?: null,
@@ -153,10 +149,6 @@ try {
                         trim($p['organization'] ?? '') ?: null,
                         trim($p['position'] ?? '') ?: null,
                         trim($p['unit_name'] ?? '') ?: null,
-                        $mealLoc ?: null,
-                        !empty($p['food_morning']) ? 1 : 0,
-                        !empty($p['food_lunch']) ? 1 : 0,
-                        !empty($p['food_dinner']) ? 1 : 0,
                         $i,
                     ]);
                 }

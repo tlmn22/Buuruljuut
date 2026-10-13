@@ -122,7 +122,10 @@ html.dark .kpi-root {
 .kpi-row.is-static { cursor: default; }
 .kpi-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--radius-sm); }
 .kpi-row__idx { font: 500 11px/14px var(--font-sans); color: var(--text-faint); text-align: right; font-variant-numeric: tabular-nums; }
-.kpi-row__who { min-width: 0; display: flex; align-items: baseline; gap: var(--space-2); }
+.kpi-row__who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kpi-row__line { min-width: 0; display: flex; align-items: baseline; gap: var(--space-2); }
+.kpi-row__pos { font: 400 12px/16px var(--font-sans); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-row__who.is-lead .kpi-row__pos { color: var(--accent); font-weight: 500; }
 .kpi-row__name { font: 600 14px/20px var(--font-sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kpi-row__id { font: 500 11px/14px var(--font-sans); color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .kpi-row__wait { min-width: 0; display: flex; flex-direction: column; gap: 2px; }

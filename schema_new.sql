@@ -620,7 +620,7 @@ CREATE TABLE transport_requests (
   id                              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   requester_id                    INT UNSIGNED NOT NULL,
   travel_direction                VARCHAR(255) NOT NULL,
-  travel_purpose                  ENUM('14/14 ростер','7/7 ростер','5/2 ээлж','3/2 ээлж','Ашиглалтын ээлж','Уулын ээлж','Бусад') NOT NULL,
+  travel_purpose                  VARCHAR(100) NOT NULL,   -- TRANSPORT_PURPOSE_GROUPS (functions.php) дахь зорилго
   start_date                      DATE NOT NULL,
   end_date                        DATE NOT NULL,
   total_days                      INT UNSIGNED NOT NULL DEFAULT 1,
