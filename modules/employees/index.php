@@ -147,6 +147,13 @@ $list = $pdo->query("
                                 class="inline-flex p-2 text-[#f1592a] hover:bg-orange-50 dark:hover:bg-[#272c38] rounded-lg transition-colors">
                             <span class="material-icons-outlined" style="font-size:18px">edit</span>
                         </button>
+                        <?php if ($row['user_id'] && (int)$row['user_id'] !== (int)($_SESSION['auth_user_id'] ?? 0)): ?>
+                        <button onclick="resetPassword(<?= (int)$row['user_id'] ?>, <?= htmlspecialchars(json_encode($row['last_name'] . '. ' . $row['first_name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)"
+                                title="Нууц үг сэргээх"
+                                class="inline-flex p-2 text-slate-500 dark:text-[#8b93a1] hover:bg-slate-100 dark:hover:bg-[#272c38] rounded-lg transition-colors">
+                            <span class="material-icons-outlined" style="font-size:18px">lock_reset</span>
+                        </button>
+                        <?php endif; ?>
                         <button onclick="confirmDelete('<?= BASE_URL ?>/modules/employees/ajax.php', <?= $row['id'] ?>, function(){ $('#row-<?= $row['id'] ?>').fadeOut(300); updateCount(); })"
                                 class="inline-flex p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors">
                             <span class="material-icons-outlined" style="font-size:18px">delete</span>
@@ -300,7 +307,48 @@ $list = $pdo->query("
     </div>
 </div>
 
+<!-- Түр нууц үг харуулах цонх -->
+<div id="tempPassModal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background:rgba(15,23,42,0.45)">
+    <div class="bg-white dark:bg-[#1c212b] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="material-icons-outlined text-[#f1592a]">lock_reset</span>
+            <h2 class="text-xl font-bold">Түр нууц үг</h2>
+        </div>
+        <p class="text-sm text-slate-500 dark:text-[#8b93a1] mb-4"><span id="tempPassName" class="font-semibold text-[#1c2430] dark:text-[#f2f3f6]"></span> (<span id="tempPassCode"></span>)-ийн түр нууц үг. Ажилтанд биечлэн эсвэл утсаар дамжуулна уу.</p>
+        <div class="flex items-center gap-2 mb-4">
+            <code id="tempPassValue" class="flex-1 text-center text-2xl font-bold tracking-widest bg-slate-100 dark:bg-[#272c38] rounded-lg py-3 select-all"></code>
+            <button type="button" onclick="copyTempPass()" class="p-3 text-[#f1592a] hover:bg-orange-50 dark:hover:bg-[#272c38] rounded-lg" title="Хуулах">
+                <span class="material-icons-outlined">content_copy</span>
+            </button>
+        </div>
+        <p class="text-xs text-amber-600 dark:text-amber-400 mb-6">Энэ цонхыг хаасны дараа нууц үг дахин харагдахгүй. Ажилтан анх нэвтрэхдээ өөрийн нууц үгээр солино.</p>
+        <button type="button" onclick="$('#tempPassModal').hide()" class="w-full bg-[#f1592a] text-white py-2.5 rounded-lg font-medium hover:bg-[#c33e12] transition-colors">Хаах</button>
+    </div>
+</div>
+
 <script>
+function resetPassword(userId, name) {
+    if (!confirm(name + '-ийн нууц үгийг сэргээх үү?\nОдоогийн нууц үг нь хүчингүй болж, түр нууц үг үүснэ.')) return;
+    $.post('<?= BASE_URL ?>/modules/employees/ajax.php', { action: 'reset_password', user_id: userId }, function (r) {
+        if (!r.success) { showToast(r.message, 'error'); return; }
+        $('#tempPassName').text(r.name);
+        $('#tempPassCode').text(r.code);
+        $('#tempPassValue').text(r.password);
+        $('#tempPassModal').css('display', 'flex');
+    }, 'json');
+}
+function copyTempPass() {
+    const text = $('#tempPassValue').text();
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Хуулагдлаа', 'success'));
+    } else {
+        // http (дотоод сүлжээ) дээр clipboard API ажиллахгүй тул сонгож хуулна
+        const range = document.createRange(); range.selectNodeContents($('#tempPassValue')[0]);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        document.execCommand('copy'); showToast('Хуулагдлаа', 'success');
+    }
+}
+
 function openModal() {
     $('#modal').css('display','flex');
     $('#modalTitle').text('Ажилтан нэмэх');
@@ -358,7 +406,7 @@ function editRow(row) {
         $('#empUserId').val(row.user_id);
         $('#empCreateLogin').prop('checked', true).prop('disabled', true); // байгаа бүртгэлийг унтраах боломжгүй, устгахдаа ашиглана
         $('#loginFields').show();
-        $('#passHint').text('(хоосон үлдээвэл өөрчлөгдөхгүй)');
+        $('#passHint').text('(хоосон үлдээвэл өөрчлөгдөхгүй; оруулсан нууц үгийг ажилтан анх нэвтрэхдээ солино)');
         const firstRole = (row.role_codes || '').split(',')[0];
         if (firstRole) $('#empRole').val($(`#empRole option[data-code="${firstRole}"]`).val());
     } else {

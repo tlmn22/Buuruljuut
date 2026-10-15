@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'KPI2 — Багийн харагдац';
+$pageTitle  = 'KPI — Багийн харагдац';
 $activePage = 'kpi2-team';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -183,10 +183,10 @@ if ($unassigned) {
 <div class="kpi-root">
     <div>
         <div class="kpi-crumb">
-            <a href="<?= BASE_URL ?>/dashboard.php">Нүүр</a> <span style="opacity:.6">/</span> <b>Багийн KPI2</b>
+            <a href="<?= BASE_URL ?>/dashboard.php">Нүүр</a> <span style="opacity:.6">/</span> <b>Багийн KPI</b>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px;flex-wrap:wrap">
-            <h1 style="margin:0;font:700 24px/30px var(--font-sans)"><?= $viewAll ? 'Бүх ажилтны KPI2' : 'Багийн KPI2' ?> <span style="font:400 12px var(--font-sans);color:var(--text-muted)">(туршилтын)</span></h1>
+            <h1 style="margin:0;font:700 24px/30px var(--font-sans)"><?= $viewAll ? 'Бүх ажилтны KPI' : 'Багийн KPI' ?></h1>
             <?php if ($periods): ?>
             <select class="kpi-period" aria-label="Үнэлгээний хугацаа" onchange="location.href='<?= BASE_URL ?>/modules/kpi2/team.php?period_id='+this.value">
                 <?php foreach ($periods as $p): ?>
@@ -198,7 +198,7 @@ if ($unassigned) {
     </div>
 
 <?php if (!$periods): ?>
-    <div class="kpi-card kpi-empty">Одоогоор KPI2 үнэлгээний хугацаа тохируулаагүй байна.</div>
+    <div class="kpi-card kpi-empty">Одоогоор KPI үнэлгээний хугацаа тохируулаагүй байна.</div>
 <?php elseif (!$cards): ?>
     <div class="kpi-card kpi-empty"><?= $viewAll ? 'Ажилтан байхгүй байна' : 'Танд харьяалагддаг ажилтан одоогоор байхгүй байна' ?></div>
 <?php else: ?>

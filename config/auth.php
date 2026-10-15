@@ -11,6 +11,12 @@ function requireLogin(): void {
         header('Location: ' . BASE_URL . '/login.php');
         exit;
     }
+    // Admin-ы өгсөн түр нууц үгээр нэвтэрсэн бол нууц үгээ солихоос нааш өөр хуудас руу оруулахгүй
+    if(!empty($_SESSION['must_change_password'])
+       && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), ['change_password.php', 'logout.php'], true)) {
+        header('Location: ' . BASE_URL . '/change_password.php');
+        exit;
+    }
 }
 
 function requireRole(string ...$roles): void {

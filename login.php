@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $pdo  = getDB();
         $stmt = $pdo->prepare(
-            "SELECT u.id AS auth_user_id, u.password_hash, u.is_active AS user_active,
+            "SELECT u.id AS auth_user_id, u.password_hash, u.must_change_password, u.is_active AS user_active,
                     e.id, e.employee_code, e.last_name, e.first_name, e.position, e.org_unit_id, e.is_active AS employee_active
              FROM users u
              JOIN employees e ON e.id = u.employee_id
@@ -53,10 +53,11 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_code']        = $user['employee_code'];
             $_SESSION['user_position']    = $user['position'] ?? '';
             $_SESSION['user_org_unit_id'] = $user['org_unit_id'];
+            $_SESSION['must_change_password'] = (bool)$user['must_change_password'];
 
             $pdo->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?")->execute([$user['auth_user_id']]);
 
-            header('Location: ' . BASE_URL . '/dashboard.php');
+            header('Location: ' . BASE_URL . ($_SESSION['must_change_password'] ? '/change_password.php' : '/dashboard.php'));
             exit;
         }
     }
@@ -120,6 +121,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p class="text-[#f1592a] text-base">Системд нэвтрэх мэдээллээ оруулна уу.</p>
             </div>
 
+            <?php if(isset($_GET['reset'])): ?>
+            <div class="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm">
+                <span class="material-icons-outlined text-lg">check_circle</span>
+                Нууц үг амжилттай шинэчлэгдлээ. Шинэ нууц үгээрээ нэвтэрнэ үү.
+            </div>
+            <?php endif; ?>
+
             <?php if($error): ?>
             <div class="mb-6 flex items-center gap-3 bg-red-50 border border-red-200 text-red-600 rounded-xl px-4 py-3 text-sm">
                 <span class="material-icons-outlined text-lg">error_outline</span>
@@ -152,7 +160,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="checkbox" name="remember" class="w-4 h-4 rounded text-[#f1592a] cursor-pointer"/>
                         <span class="text-sm text-slate-600">Намайг санах</span>
                     </label>
-                    <a href="#" class="text-sm font-semibold text-[#f1592a] hover:underline">Нууц үг мартсан?</a>
+                    <a href="<?= BASE_URL ?>/forgot_password.php" class="text-sm font-semibold text-[#f1592a] hover:underline">Нууц үг мартсан?</a>
                 </div>
                 <button type="submit"
                         class="w-full bg-[#f1592a] hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-all duration-200 shadow-lg shadow-blue-200 text-base">

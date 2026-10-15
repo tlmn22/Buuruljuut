@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'KPI2 — Хэлтсийн ажлаа төлөвлөх';
+$pageTitle  = 'KPI — Хэлтсийн ажлаа төлөвлөх';
 $activePage = 'kpi2-manager';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -84,9 +84,9 @@ $editable = $batch && in_array($batch['status'], ['draft', 'rejected'], true);
         <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
             <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
             <span class="mx-2">/</span>
-            <span class="text-[#f1592a] font-medium">KPI2 — Хэлтсийн ажлаа төлөвлөх</span>
+            <span class="text-[#f1592a] font-medium">KPI — Хэлтсийн ажлаа төлөвлөх</span>
         </nav>
-        <h1 class="text-3xl font-bold">Хэлтсийн ажлаа төлөвлөх <span class="text-sm font-normal text-slate-400 dark:text-[#5a6172]">(туршилтын)</span></h1>
+        <h1 class="text-3xl font-bold">Хэлтсийн ажлаа төлөвлөх</h1>
     </div>
     <div class="flex gap-2">
         <select onchange="location.href='?period_id='+this.value+'&unit_id=<?= $selectedUnitId ?>'"
@@ -106,7 +106,7 @@ $editable = $batch && in_array($batch['status'], ['draft', 'rejected'], true);
 
 <?php if (!$periods): ?>
     <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-16 text-center text-slate-400 dark:text-[#5a6172]">
-        Идэвхтэй KPI2 хугацаа тохируулаагүй байна. HR-т хандана уу.
+        Идэвхтэй KPI хугацаа тохируулаагүй байна. HR-т хандана уу.
     </div>
 <?php elseif (!$batch): ?>
     <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-16 text-center">

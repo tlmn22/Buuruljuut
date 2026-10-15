@@ -134,6 +134,8 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         <div class="flex items-center gap-3 px-4 py-2.5 text-[#5a6172] rounded-lg text-sm cursor-default"><span class="material-icons-outlined text-base">schedule</span>Удахгүй...</div>
                     </div>
                 </div>
+                <?php /* Хуучин KPI групп — нуусан (KPI2 нь "KPI" нэрээр орлосон). Буцааж харуулах бол true болгоно. */ ?>
+                <?php if (false): ?>
                 <?php $kpiOpen = inGroup(['kpi','kpi-team','kpi-admin','kpi-report']); ?>
                 <div class="menu-group">
                     <button onclick="toggleGroup(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $kpiOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
@@ -161,6 +163,7 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php endif; ?>
                 <?php
                 $myEmpIdForKpi2 = (int)($_SESSION['user_id'] ?? 0);
                 $kpi2IsMgr = $myEmpIdForKpi2 ? kpi2IsManager(getDB(), $myEmpIdForKpi2) : false;
@@ -169,12 +172,12 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                 ?>
                 <div class="menu-group">
                     <button onclick="toggleGroup(this)" class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $kpi2Open ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-                        <div class="flex items-center gap-3"><span class="material-icons-outlined">insights</span><span>KPI2 <span class="text-[10px] opacity-70">(туршилт)</span></span></div>
+                        <div class="flex items-center gap-3"><span class="material-icons-outlined">insights</span><span>KPI</span></div>
                         <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $kpi2Open ? 'rotate-180' : '' ?>">expand_more</span>
                     </button>
                     <div class="accordion-items pl-4 mt-1 space-y-1 <?= $kpi2Open ? '' : 'hidden' ?>">
                         <a href="<?= BASE_URL ?>/modules/kpi2/index.php" class="flex items-center gap-3 px-4 py-2.5 <?= ac('kpi2') ?> rounded-lg transition-colors text-sm">
-                            <span class="material-icons-outlined text-base">assignment_ind</span>Миний KPI2
+                            <span class="material-icons-outlined text-base">assignment_ind</span>Миний KPI
                         </a>
                         <?php if ($kpi2IsMgr || isHR() || isSuperAdmin()): ?>
                         <a href="<?= BASE_URL ?>/modules/kpi2/manager.php" class="flex items-center gap-3 px-4 py-2.5 <?= ac('kpi2-manager') ?> rounded-lg transition-colors text-sm">
@@ -188,12 +191,12 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         <?php endif; ?>
                         <?php if ($kpi2IsMgr || $kpi2IsDir || isHR() || isSuperAdmin()): ?>
                         <a href="<?= BASE_URL ?>/modules/kpi2/team.php" class="flex items-center gap-3 px-4 py-2.5 <?= ac('kpi2-team') ?> rounded-lg transition-colors text-sm">
-                            <span class="material-icons-outlined text-base">groups</span>Багийн KPI2
+                            <span class="material-icons-outlined text-base">groups</span>Багийн KPI
                         </a>
                         <?php endif; ?>
                         <?php if (isHR() || isSuperAdmin()): ?>
                         <a href="<?= BASE_URL ?>/modules/kpi2/admin.php" class="flex items-center gap-3 px-4 py-2.5 <?= ac('kpi2-admin') ?> rounded-lg transition-colors text-sm">
-                            <span class="material-icons-outlined text-base">tune</span>KPI2 тохиргоо
+                            <span class="material-icons-outlined text-base">tune</span>KPI тохиргоо
                         </a>
                         <?php endif; ?>
                     </div>
@@ -267,6 +270,9 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         <p class="text-xs text-[#8b93a1]"><?= htmlspecialchars($_SESSION['user_position'] ?? roleLabel($user['role'])) ?></p>
                     </div>
                 </div>
+                <a href="<?= BASE_URL ?>/change_password.php" class="w-full flex items-center justify-center gap-2 py-2 mb-2 text-[#a7adba] hover:bg-[#272c38] hover:text-white rounded-lg text-sm font-medium transition-colors">
+                    <span class="material-icons-outlined" style="font-size:16px">key</span> Нууц үг солих
+                </a>
                 <a href="<?= BASE_URL ?>/logout.php" class="w-full flex items-center justify-center gap-2 py-2 bg-[#272c38] text-[#c9cdd6] hover:bg-[#313745] hover:text-white rounded-lg text-sm font-medium transition-colors">
                     <span class="material-icons-outlined" style="font-size:16px">logout</span> Гарах
                 </a>

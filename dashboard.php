@@ -60,7 +60,7 @@ $mockBirthdays = [
 $mockQuickLinks = [
     ['label' => 'Ирц бүртгэх',   'icon' => 'schedule',        'href' => '#'],
     ['label' => 'Чөлөө хүсэх',   'icon' => 'event_available',  'href' => '#'],
-    ['label' => 'Миний KPI',     'icon' => 'leaderboard',      'href' => BASE_URL . '/modules/kpi/index.php'],
+    ['label' => 'Миний KPI',     'icon' => 'leaderboard',      'href' => BASE_URL . '/modules/kpi2/index.php'],
     ['label' => 'Дүрэм журам',   'icon' => 'menu_book',        'href' => BASE_URL . '/modules/regulations/index.php'],
     ['label' => 'OneFit',        'icon' => 'fitness_center',   'href' => BASE_URL . '/modules/onefit/index.php'],
     ['label' => 'Профайл',       'icon' => 'person',           'href' => '#'],
@@ -155,7 +155,7 @@ $positionLabel = $_SESSION['user_position'] ?? roleLabel($user['role']);
                 </div>
                 <?php endforeach; ?>
             </div>
-            <a href="<?= BASE_URL ?>/modules/kpi/index.php" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-[#f1592a] hover:underline">
+            <a href="<?= BASE_URL ?>/modules/kpi2/index.php" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-[#f1592a] hover:underline">
                 Дэлгэрэнгүй харах <span class="material-icons-outlined text-sm">arrow_forward</span>
             </a>
         </div>

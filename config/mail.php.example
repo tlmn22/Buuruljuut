@@ -1,0 +1,18 @@
+<?php
+/**
+ * SMTP тохиргоо — энэ файлыг config/mail.php нэрээр хуулж бодит утгаа бөглөнө.
+ * config/mail.php нь .gitignore-д байгаа (нууц үг repo-д орохгүй).
+ */
+
+// Имэйл илгээх SMTP сервер
+define('MAIL_HOST', 'smtp.example.com');
+define('MAIL_PORT', 587);                 // 587 = STARTTLS, 465 = SSL
+define('MAIL_SECURE', 'tls');             // 'tls' (587) эсвэл 'ssl' (465)
+define('MAIL_USERNAME', 'noreply@example.com');
+define('MAIL_PASSWORD', '');
+define('MAIL_FROM_EMAIL', 'noreply@example.com');
+define('MAIL_FROM_NAME', 'Buuruljuut Intranet');
+
+// Сэргээх холбоосын үндсэн хаяг — ТОГТМОЛ байх ёстой (хүсэлтийн Host-оос авахгүй,
+// эс тэгвээс халдагч холбоосыг өөр сайт руу заалгах боломжтой).
+define('APP_PUBLIC_URL', 'http://172.16.0.6/buuruljuut');

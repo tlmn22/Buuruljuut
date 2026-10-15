@@ -16,7 +16,7 @@ function loadKpi2Evaluation(PDO $pdo, int $id): array {
     $stmt = $pdo->prepare("SELECT * FROM kpi2_evaluations WHERE id = ?");
     $stmt->execute([$id]);
     $row = $stmt->fetch();
-    if (!$row) throw new Exception('KPI2 хуудас олдсонгүй.');
+    if (!$row) throw new Exception('KPI хуудас олдсонгүй.');
     return $row;
 }
 
@@ -213,7 +213,7 @@ try {
 
             $isManagerHere = $pdo->prepare("SELECT COUNT(*) FROM kpi2_unit_roles WHERE org_unit_id=? AND role='manager' AND employee_id=?");
             $isManagerHere->execute([$orgUnitId, $myEmployeeId]);
-            if (!$isManagerHere->fetchColumn() && !isHR() && !isSuperAdmin()) throw new Exception('Та энэ нэгжийн KPI2 менежер биш байна.');
+            if (!$isManagerHere->fetchColumn() && !isHR() && !isSuperAdmin()) throw new Exception('Та энэ нэгжийн KPI менежер биш байна.');
 
             $chk = $pdo->prepare("SELECT id FROM kpi2_task_batches WHERE period_id=? AND org_unit_id=?");
             $chk->execute([$periodId, $orgUnitId]);
@@ -404,7 +404,7 @@ try {
                 }
             }
 
-            echo json_encode(['success' => true, 'message' => 'Ажлын багц батлагдаж, ажилтнуудын KPI2 дээр орлоо.']);
+            echo json_encode(['success' => true, 'message' => 'Ажлын багц батлагдаж, ажилтнуудын KPI дээр орлоо.']);
             break;
 
         case 'batch_reject':
@@ -449,7 +449,7 @@ try {
             $id = intval($_POST['id'] ?? 0);
             $cnt = $pdo->prepare("SELECT COUNT(*) FROM kpi2_evaluations WHERE period_id=?");
             $cnt->execute([$id]);
-            if ($cnt->fetchColumn() > 0) throw new Exception('Энэ хугацаагаар үүссэн KPI2 хуудас байна, устгах боломжгүй.');
+            if ($cnt->fetchColumn() > 0) throw new Exception('Энэ хугацаагаар үүссэн KPI хуудас байна, устгах боломжгүй.');
             $pdo->prepare("DELETE FROM kpi2_periods WHERE id=?")->execute([$id]);
             echo json_encode(['success' => true, 'message' => 'Хугацаа устгагдлаа.']);
             break;

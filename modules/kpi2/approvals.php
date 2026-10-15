@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'KPI2 — KPI батлах хүсэлтүүд';
+$pageTitle  = 'KPI батлах хүсэлтүүд';
 $activePage = 'kpi2-approvals';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -102,9 +102,9 @@ foreach ($batches as $b) { $counts[$b['status']]++; }
         <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
             <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
             <span class="mx-2">/</span>
-            <span class="text-[#f1592a] font-medium">KPI2 — KPI батлах хүсэлтүүд</span>
+            <span class="text-[#f1592a] font-medium">KPI батлах хүсэлтүүд</span>
         </nav>
-        <h1 class="text-3xl font-bold">KPI батлах хүсэлтүүд <span class="text-sm font-normal text-slate-400 dark:text-[#5a6172]">(туршилтын)</span></h1>
+        <h1 class="text-3xl font-bold">KPI батлах хүсэлтүүд</h1>
     </div>
     <?php if ($periodOptions): ?>
     <select onchange="location.href='?period_id='+this.value"
@@ -249,7 +249,7 @@ function toggleBatch(id) {
 }
 
 function approveBatch(id) {
-    if (!confirm('Энэ ажлын багцыг батлах уу? Батлагдсаны дараа тухайн ажлууд ажилтнуудын KPI2 дээр автоматаар орно.')) return;
+    if (!confirm('Энэ ажлын багцыг батлах уу? Батлагдсаны дараа тухайн ажлууд ажилтнуудын KPI дээр автоматаар орно.')) return;
     $.post(AJAX, { action: 'batch_approve', batch_id: id }, function(r) {
         showToast(r.message || '', r.success ? 'success' : 'error');
         if (r.success) location.reload();

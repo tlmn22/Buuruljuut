@@ -3,6 +3,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/auth.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/modules/kpi/evaluator_sync.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/password.php';
 header('Content-Type: application/json');
 requireRole('superadmin');
 
@@ -38,8 +39,9 @@ function createLogin(PDO $pdo, int $employeeId, string $employeeCode, string $pa
     $chk->execute([$employeeCode]);
     if ($chk->fetch()) throw new Exception('Энэ нэвтрэх нэр аль хэдийн бүртгэлтэй байна.');
 
+    // Admin-ы өгсөн нууц үг нь түр — ажилтан анх нэвтрэхдээ солино
     $hash = password_hash($password, PASSWORD_DEFAULT);
-    $pdo->prepare("INSERT INTO users (employee_id, username, password_hash, is_active) VALUES (?,?,?,1)")
+    $pdo->prepare("INSERT INTO users (employee_id, username, password_hash, must_change_password, is_active) VALUES (?,?,?,1,1)")
         ->execute([$employeeId, $employeeCode, $hash]);
     $userId = (int)$pdo->lastInsertId();
 
@@ -150,8 +152,7 @@ try {
 
                 if ($password) {
                     if (strlen($password) < 6) throw new Exception('Нууц үг хамгийн багадаа 6 тэмдэгт байна уу.');
-                    $pdo->prepare("UPDATE users SET password_hash=? WHERE id=?")
-                        ->execute([password_hash($password, PASSWORD_DEFAULT), $userId]);
+                    setUserPassword($pdo, $userId, $password, true); // түр нууц үг — анх нэвтрэхэд солиулна
                 }
 
                 if ($roleId) {
@@ -167,6 +168,27 @@ try {
 
             $pdo->commit();
             echo json_encode(['success' => true, 'message' => 'Ажилтны мэдээлэл засагдлаа.']);
+            break;
+
+        case 'reset_password':
+            // Түр нууц үг үүсгэж, ажилтныг дараагийн нэвтрэлтэд солиулна. Нууц үгийг зөвхөн нэг удаа буцаана.
+            $userId = intval($_POST['user_id'] ?? 0);
+            $u = $pdo->prepare("SELECT u.id, e.last_name, e.first_name, e.employee_code FROM users u
+                                JOIN employees e ON e.id = u.employee_id WHERE u.id = ?");
+            $u->execute([$userId]);
+            $target = $u->fetch();
+            if (!$target) throw new Exception('Нэвтрэх эрх олдсонгүй.');
+            if ($userId === (int)($_SESSION['auth_user_id'] ?? 0)) throw new Exception('Өөрийн нууц үгийг "Нууц үг солих" хэсгээс солино уу.');
+
+            $temp = generateTempPassword();
+            setUserPassword($pdo, $userId, $temp, true);
+            echo json_encode([
+                'success'  => true,
+                'message'  => 'Түр нууц үг үүслээ.',
+                'password' => $temp,
+                'name'     => $target['last_name'] . '. ' . $target['first_name'],
+                'code'     => $target['employee_code'],
+            ]);
             break;
 
         case 'delete':

@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'KPI2 хуудас';
+$pageTitle  = 'KPI хуудас';
 $activePage = 'kpi2';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -25,7 +25,7 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$evalId]);
 $eval = $stmt->fetch();
-if (!$eval) { http_response_code(404); die('KPI2 хуудас олдсонгүй.'); }
+if (!$eval) { http_response_code(404); die('KPI хуудас олдсонгүй.'); }
 
 $isOwner     = (int)$eval['employee_id'] === $myEmployeeId;
 $isEvaluator = (int)$eval['evaluator_id'] === $myEmployeeId;
@@ -77,7 +77,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/header.php';
         <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
             <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
             <span class="mx-2">/</span>
-            <a href="<?= BASE_URL ?>/modules/kpi2/index.php" class="hover:text-[#f1592a]">KPI2</a>
+            <a href="<?= BASE_URL ?>/modules/kpi2/index.php" class="hover:text-[#f1592a]">KPI</a>
             <span class="mx-2">/</span>
             <span class="text-[#f1592a] font-medium"><?= htmlspecialchars($eval['period_name']) ?></span>
         </nav>
@@ -309,7 +309,7 @@ renderSection('special_task', KPI2_SECTION_LABELS['special_task'] . ' (бону�
             <div class="ml-auto flex items-center gap-2">
                 <input type="date" id="interviewDate" class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm"/>
                 <button onclick="submitManagerEval()" class="bg-[#f1592a] text-white px-5 py-2.5 rounded-lg font-medium hover:bg-[#c33e12] transition-colors">
-                    KPI2 ийг хаах
+                    KPI-г хаах
                 </button>
             </div>
         </div>

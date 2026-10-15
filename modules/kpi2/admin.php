@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'KPI2 тохиргоо';
+$pageTitle  = 'KPI тохиргоо';
 $activePage = 'kpi2-admin';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -33,9 +33,9 @@ foreach ($units as $u) {
         <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
             <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
             <span class="mx-2">/</span>
-            <span class="text-[#f1592a] font-medium">KPI2 тохиргоо</span>
+            <span class="text-[#f1592a] font-medium">KPI тохиргоо</span>
         </nav>
-        <h1 class="text-3xl font-bold">KPI2 тохиргоо <span class="text-sm font-normal text-slate-400 dark:text-[#5a6172]">(туршилтын)</span></h1>
+        <h1 class="text-3xl font-bold">KPI тохиргоо</h1>
     </div>
 </div>
 
@@ -91,8 +91,8 @@ foreach ($units as $u) {
 <!-- Нэгж тус бүрийн KPI2 manager/director -->
 <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-slate-100 dark:border-[#2a2f3b]">
-        <h3 class="font-bold">Нэгж тус бүрийн KPI2 manager / director</h3>
-        <p class="text-xs text-slate-400 dark:text-[#8b93a1] mt-1">Энэ бол жинхэнэ байгууллагын удирдлагаас тусдаа, зөвхөн KPI2 туршилтад ашиглагдана.</p>
+        <h3 class="font-bold">Нэгж тус бүрийн KPI manager / director</h3>
+        <p class="text-xs text-slate-400 dark:text-[#8b93a1] mt-1">Энэ бол жинхэнэ байгууллагын удирдлагаас тусдаа, зөвхөн KPI-д ашиглагдана.</p>
     </div>
     <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table class="w-full text-sm">
@@ -140,7 +140,7 @@ foreach ($units as $u) {
             <input type="hidden" id="periodId" value=""/>
             <div>
                 <label class="block text-sm font-medium mb-1.5">Нэр <span class="text-red-500">*</span></label>
-                <input type="text" id="periodName" required class="w-full border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-4 py-2.5 text-sm" placeholder="Жишээ: 2026 оны 1-р улирал (KPI2 туршилт)"/>
+                <input type="text" id="periodName" required class="w-full border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-4 py-2.5 text-sm" placeholder="Жишээ: 2026 оны 1-р улирал"/>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>

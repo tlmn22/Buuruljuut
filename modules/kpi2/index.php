@@ -1,5 +1,5 @@
 <?php
-$pageTitle  = 'Миний KPI2';
+$pageTitle  = 'Миний KPI';
 $activePage = 'kpi2';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/config.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
@@ -61,16 +61,16 @@ usort($rows, fn($a, $b) => strcmp($b['start_date'], $a['start_date']));
         <nav class="flex text-sm text-slate-500 dark:text-[#8b93a1] mb-2">
             <a href="<?= BASE_URL ?>/dashboard.php" class="hover:text-[#f1592a]">Нүүр</a>
             <span class="mx-2">/</span>
-            <span class="text-[#f1592a] font-medium">Миний KPI2</span>
+            <span class="text-[#f1592a] font-medium">Миний KPI</span>
         </nav>
-        <h1 class="text-3xl font-bold">Миний KPI2 <span class="text-sm font-normal text-slate-400 dark:text-[#5a6172]">(туршилтын)</span></h1>
+        <h1 class="text-3xl font-bold">Миний KPI</h1>
     </div>
 </div>
 
 <?php if (empty($rows)): ?>
     <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm p-16 text-center text-slate-400 dark:text-[#5a6172]">
         <span class="material-icons-outlined block mb-3" style="font-size:48px">event_busy</span>
-        Одоогоор идэвхтэй KPI2 үнэлгээний хугацаа байхгүй байна. Хэлтэс/Албаны ажлын багц батлагдсаны дараа энд харагдана.
+        Одоогоор идэвхтэй KPI үнэлгээний хугацаа байхгүй байна. Хэлтэс/Албаны ажлын багц батлагдсаны дараа энд харагдана.
     </div>
 <?php else: ?>
 <div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm overflow-x-auto">

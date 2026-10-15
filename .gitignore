@@ -10,8 +10,9 @@ buuruljuut.sql
 *.xlsx
 ~$*.xlsx
 
-# DB нэвтрэх мэдээлэл — оронд нь config/db.php.example ашиглана
+# DB / SMTP нэвтрэх мэдээлэл — оронд нь config/*.php.example ашиглана
 config/db.php
+config/mail.php
 
 # Энэ төсөлтэй хамааралгүй, өөр аппаас үлдсэн туршилтын хавтас
 mnt/
