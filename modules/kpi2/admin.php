@@ -116,7 +116,7 @@ foreach ($units as $u) {
                             <option value="">— сонгоогүй —</option>
                             <?php foreach ($employees as $ev): ?>
                                 <option value="<?= $ev['id'] ?>" <?= $cur && (int)$cur['employee_id'] === (int)$ev['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($ev['last_name'] . '. ' . $ev['first_name'] . ($ev['position'] ? ' — ' . $ev['position'] : '')) ?>
+                                    <?= htmlspecialchars(employeeName($ev['last_name'], $ev['first_name']) . ($ev['position'] ? ' — ' . $ev['position'] : '')) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

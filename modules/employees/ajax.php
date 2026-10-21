@@ -186,7 +186,7 @@ try {
                 'success'  => true,
                 'message'  => 'Түр нууц үг үүслээ.',
                 'password' => $temp,
-                'name'     => $target['last_name'] . '. ' . $target['first_name'],
+                'name'     => employeeName($target['last_name'], $target['first_name']),
                 'code'     => $target['employee_code'],
             ]);
             break;

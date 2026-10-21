@@ -82,7 +82,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/header.php';
             <span class="text-[#f1592a] font-medium"><?= htmlspecialchars($eval['period_name']) ?></span>
         </nav>
         <div class="flex items-center gap-3 flex-wrap">
-            <h1 class="text-2xl font-bold"><?= htmlspecialchars($eval['last_name'] . '. ' . $eval['first_name']) ?> — <?= htmlspecialchars($eval['period_name']) ?></h1>
+            <h1 class="text-2xl font-bold"><?= htmlspecialchars(employeeName($eval['last_name'], $eval['first_name'])) ?> — <?= htmlspecialchars($eval['period_name']) ?></h1>
         </div>
         <p class="text-sm text-slate-500 dark:text-[#8b93a1] mt-1">
             <?= htmlspecialchars($eval['position_snapshot'] ?? '—') ?> · <?= htmlspecialchars($eval['org_unit_snapshot'] ?? '—') ?>

@@ -121,7 +121,7 @@ $requests = $stmt->fetchAll();
             ?>
             <tr class="hover:bg-slate-50 dark:hover:bg-[#20242e]">
                 <td class="px-5 py-3">
-                    <p class="font-medium"><?= htmlspecialchars($r['last_name'] . '. ' . $r['first_name']) ?></p>
+                    <p class="font-medium"><?= htmlspecialchars(employeeName($r['last_name'], $r['first_name'])) ?></p>
                     <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($r['employee_code']) ?></p>
                 </td>
                 <td class="px-4 py-3"><?= htmlspecialchars($r['travel_direction']) ?></td>
@@ -185,7 +185,7 @@ $orders = $ostmt->fetchAll();
             ?>
             <tr class="hover:bg-slate-50 dark:hover:bg-[#20242e]">
                 <td class="px-5 py-3 font-medium">#<?= (int)$o['id'] ?></td>
-                <td class="px-4 py-3"><?= htmlspecialchars($o['tm_last'] . '. ' . $o['tm_first']) ?></td>
+                <td class="px-4 py-3"><?= htmlspecialchars(employeeName($o['tm_last'], $o['tm_first'])) ?></td>
                 <td class="px-4 py-3 text-center text-slate-500 dark:text-[#8b93a1]"><?= (int)$o['req_count'] ?> / <?= (int)$o['pax_total'] ?></td>
                 <td class="px-4 py-3"><span class="px-2.5 py-1 rounded-full text-xs font-medium <?= TRANSPORT_ORDER_STATUS_COLORS[$o['status']] ?>"><?= TRANSPORT_ORDER_STATUS_LABELS[$o['status']] ?></span></td>
                 <td class="px-5 py-3 text-right">

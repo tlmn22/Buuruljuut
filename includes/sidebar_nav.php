@@ -8,6 +8,10 @@
         class="flex items-center gap-3 px-4 py-3 <?= ac('dashboard') ?> rounded-lg transition-colors">
         <span class="material-icons-outlined">home</span>Миний самбар
     </a>
+    <a href="<?= BASE_URL ?>/modules/news/index.php"
+        class="flex items-center gap-3 px-4 py-3 <?= ac('news') ?> rounded-lg transition-colors">
+        <span class="material-icons-outlined">campaign</span>Мэдээ мэдээлэл
+    </a>
     <?php $regOpen = inGroup(['regulations','regulations-admin']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
@@ -237,7 +241,7 @@
 </nav>
 
 <div class="p-4 border-t border-[#2a2f3b]">
-    <div class="flex items-center gap-3 mb-3">
+    <a href="<?= BASE_URL ?>/profile.php" title="Миний профайл" class="flex items-center gap-3 mb-3 -mx-2 px-2 py-1.5 rounded-lg hover:bg-[#272c38] transition-colors">
         <?php if ($empPhoto && file_exists(UPLOAD_PATH . $empPhoto)): ?>
             <img src="<?= UPLOAD_URL . htmlspecialchars($empPhoto) ?>"
                 class="w-9 h-9 rounded-full object-cover border-2 border-[#2a2f3b] flex-shrink-0" />
@@ -250,7 +254,7 @@
             <p class="text-sm font-semibold text-[#f2f3f6] truncate"><?= htmlspecialchars($user['name']) ?></p>
             <p class="text-xs text-[#8b93a1]"><?= htmlspecialchars($_SESSION['user_position'] ?? roleLabel($user['role'])) ?></p>
         </div>
-    </div>
+    </a>
     <a href="<?= BASE_URL ?>/change_password.php"
         class="w-full flex items-center justify-center gap-2 py-2 mb-2 text-[#a7adba] hover:bg-[#272c38] hover:text-white rounded-lg text-sm font-medium transition-colors <?= ($activePage ?? '') === 'change-password' ? 'bg-[#272c38] text-white' : '' ?>">
         <span class="material-icons-outlined" style="font-size:16px">key</span> Нууц үг солих

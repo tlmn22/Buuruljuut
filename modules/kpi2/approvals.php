@@ -201,7 +201,7 @@ foreach ($batches as $b) { $counts[$b['status']]++; }
                                 <div class="flex flex-wrap gap-1.5">
                                     <?php foreach ($assigns as $a): ?>
                                         <span class="inline-flex items-center px-2.5 py-1 bg-slate-100 dark:bg-[#272c38] rounded-full text-xs whitespace-nowrap">
-                                            <?= htmlspecialchars($a['last_name'] . '. ' . $a['first_name']) ?> · <?= rtrim(rtrim(number_format((float)$a['percent'], 1), '0'), '.') ?>%
+                                            <?= htmlspecialchars(employeeName($a['last_name'], $a['first_name'])) ?> · <?= rtrim(rtrim(number_format((float)$a['percent'], 1), '0'), '.') ?>%
                                         </span>
                                     <?php endforeach; ?>
                                 </div>

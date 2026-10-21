@@ -43,7 +43,7 @@ $employees = $pdo->query("SELECT id, employee_code, last_name, first_name, posit
             <?php else: foreach ($rows as $r): ?>
                 <div class="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-[#14171f] rounded-lg">
                     <div>
-                        <p class="font-medium text-sm"><?= htmlspecialchars($r['last_name'] . '. ' . $r['first_name']) ?></p>
+                        <p class="font-medium text-sm"><?= htmlspecialchars(employeeName($r['last_name'], $r['first_name'])) ?></p>
                         <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($r['position'] ?? '') ?></p>
                     </div>
                     <button onclick="removeRole(<?= $r['id'] ?>)" class="text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 p-1.5 rounded-lg">
@@ -56,7 +56,7 @@ $employees = $pdo->query("SELECT id, employee_code, last_name, first_name, posit
             <select class="add-role-select flex-1 border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm" data-role="<?= $roleKey ?>">
                 <option value="">— ажилтан сонгох —</option>
                 <?php foreach ($employees as $e): ?>
-                    <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name'] . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
+                    <option value="<?= $e['id'] ?>"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name']) . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
                 <?php endforeach; ?>
             </select>
             <button onclick="addRole(this)" class="bg-[#f1592a] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#c33e12]">Нэмэх</button>

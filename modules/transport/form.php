@@ -108,7 +108,7 @@ $passengersForJs = array_map(function ($p) {
         'id' => (int)$p['id'],
         'guest' => $p['type'] === 'Зочин',
         'employee_id' => $p['employee_id'] ? (int)$p['employee_id'] : null,
-        'name' => $p['employee_id'] ? trim($p['emp_last'] . '. ' . $p['emp_first'] . ' (' . $p['emp_code'] . ')') : (string)$p['full_name'],
+        'name' => $p['employee_id'] ? trim(employeeName($p['emp_last'], $p['emp_first']) . ' (' . $p['emp_code'] . ')') : (string)$p['full_name'],
         'org' => (string)$p['organization'],
         'pos' => (string)$p['position'],
         'unit' => (string)$p['unit_name'],
@@ -356,9 +356,9 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
     <?php elseif ($req):
         $approvalSteps = ['Шууд удирдлага', 'Тээвэр хариуцсан менежер', 'Тээвэр хариуцсан захирал', 'Баталгаажсан'];
         $approvalActors = [
-            $req['manager_last'] ? $req['manager_last'] . '. ' . $req['manager_first'] : null,
-            $req['tm_last'] ? $req['tm_last'] . '. ' . $req['tm_first'] : null,
-            $req['director_last'] ? $req['director_last'] . '. ' . $req['director_first'] : null,
+            $req['manager_last'] ? employeeName($req['manager_last'], $req['manager_first']) : null,
+            $req['tm_last'] ? employeeName($req['tm_last'], $req['tm_first']) : null,
+            $req['director_last'] ? employeeName($req['director_last'], $req['director_first']) : null,
             null,
         ];
         $approvalStepMap = ['pending_manager' => 0, 'manager_rejected' => 0, 'pending_transport_manager' => 1, 'director_rejected' => 1, 'pending_director' => 2, 'completed' => 3];
@@ -723,7 +723,7 @@ function toggleSection(head) {
         if (!rows.length) { box.classList.add('hidden'); box.innerHTML = ''; return; }
         box.innerHTML = '';
         rows.forEach(function (r) {
-          var label = r.last_name + '. ' + r.first_name + ' (' + r.employee_code + ')';
+          var label = (r.last_name ? r.last_name.charAt(0).toUpperCase() + '. ' : '') + r.first_name + ' (' + r.employee_code + ')'; // employeeName()-тэй ижил хэлбэр
           var item = document.createElement('div');
           item.className = 'px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-[#272c38] cursor-pointer';
           item.textContent = label;

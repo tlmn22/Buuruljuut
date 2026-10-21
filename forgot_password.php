@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $mailReady) {
                     ->execute([$user['auth_user_id'], hash('sha256', $token), $_SERVER['REMOTE_ADDR'] ?? null]);
 
                 $link = rtrim(APP_PUBLIC_URL, '/') . '/reset_password.php?token=' . $token;
-                $name = $user['last_name'] . '. ' . $user['first_name'];
+                $name = employeeName($user['last_name'], $user['first_name']);
                 $minutes = PASSWORD_RESET_TTL_MINUTES;
                 $html = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#1c2430;line-height:1.6">'
                       . '<p>Сайн байна уу, ' . htmlspecialchars($name) . '.</p>'

@@ -29,7 +29,7 @@ $requests = $stmt->fetchAll();
 function transportRoleHolderNames(PDO $pdo, string $role): string {
     $stmt = $pdo->prepare("SELECT e.last_name, e.first_name FROM transport_roles tr JOIN employees e ON e.id = tr.employee_id WHERE tr.role = ? ORDER BY e.last_name");
     $stmt->execute([$role]);
-    $names = array_map(fn($r) => $r['last_name'] . '. ' . $r['first_name'], $stmt->fetchAll());
+    $names = array_map(fn($r) => employeeName($r['last_name'], $r['first_name']), $stmt->fetchAll());
     return $names ? implode(', ', $names) : 'Тохируулаагүй';
 }
 $directorNames = transportRoleHolderNames($pdo, 'director');
@@ -39,7 +39,7 @@ $transportManagerNames = transportRoleHolderNames($pdo, 'transport_manager');
 function transportCurrentHolder(array $r, string $directorNames, string $tmNames): string {
     switch ($r['status']) {
         case 'pending_manager':
-            return $r['manager_last'] ? $r['manager_last'] . '. ' . $r['manager_first'] : '—';
+            return $r['manager_last'] ? employeeName($r['manager_last'], $r['manager_first']) : '—';
         case 'pending_director':
             return $directorNames;
         case 'pending_transport_manager':

@@ -148,7 +148,7 @@ if ($viewId) {
             <tr class="hover:bg-slate-50">
               <td class="px-4 py-3">
                 <p class="font-medium text-slate-800">
-                  <?= $r['last_name'] ? htmlspecialchars($r['last_name'].' '.$r['first_name']) : htmlspecialchars($r['EmployeeNumber']) ?>
+                  <?= $r['last_name'] ? htmlspecialchars(employeeName($r['last_name'], $r['first_name'])) : htmlspecialchars($r['EmployeeNumber']) ?>
                 </p>
                 <p class="text-xs text-slate-400"><?= htmlspecialchars($r['EmployeeNumber']) ?> · <?= htmlspecialchars($r['div_name'] ?? '—') ?></p>
               </td>

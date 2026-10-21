@@ -216,7 +216,7 @@ $batchCurrentStep = match ($batch['status']) {
                     <div class="flex flex-wrap items-center gap-1.5">
                         <?php foreach ($assigns as $a): ?>
                             <span class="inline-flex items-center gap-1 pl-2.5 pr-2 py-1 bg-slate-100 dark:bg-[#272c38] rounded-full text-xs whitespace-nowrap">
-                                <?= htmlspecialchars($a['last_name'] . '. ' . $a['first_name']) ?> · <?= rtrim(rtrim(number_format((float)$a['percent'], 1), '0'), '.') ?>%
+                                <?= htmlspecialchars(employeeName($a['last_name'], $a['first_name'])) ?> · <?= rtrim(rtrim(number_format((float)$a['percent'], 1), '0'), '.') ?>%
                             </span>
                         <?php endforeach; ?>
                         <?php if (empty($assigns) && !$editable): ?>
@@ -331,7 +331,7 @@ $batchCurrentStep = match ($batch['status']) {
             <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
                 <?php foreach ($unitEmployees as $ue): ?>
                     <div class="flex items-center gap-3">
-                        <span class="flex-1 min-w-0 text-sm truncate"><?= htmlspecialchars($ue['last_name'] . '. ' . $ue['first_name']) ?> <span class="text-xs text-slate-400">(<?= htmlspecialchars($ue['employee_code']) ?>)</span></span>
+                        <span class="flex-1 min-w-0 text-sm truncate"><?= htmlspecialchars(employeeName($ue['last_name'], $ue['first_name'])) ?> <span class="text-xs text-slate-400">(<?= htmlspecialchars($ue['employee_code']) ?>)</span></span>
                         <div class="flex items-center flex-shrink-0">
                             <input type="number" class="assign-percent-input w-20 border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-2 py-1.5 text-sm text-right"
                                    data-employee="<?= $ue['id'] ?>" min="0" max="100" step="0.1" value="0"/>

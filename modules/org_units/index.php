@@ -96,7 +96,7 @@ $totalUnits = count($units);
                         </td>
                         <td class="px-6 py-4">
                             <?php if ($row['mgr_last']): ?>
-                                <p class="text-sm font-medium"><?= htmlspecialchars($row['mgr_last'] . '. ' . $row['mgr_first']) ?></p>
+                                <p class="text-sm font-medium"><?= htmlspecialchars(employeeName($row['mgr_last'], $row['mgr_first'])) ?></p>
                                 <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($row['mgr_pos'] ?? '') ?></p>
                             <?php else: ?><span class="text-xs text-slate-400 dark:text-[#5a6172] italic">Тохируулаагүй</span><?php endif; ?>
                         </td>
@@ -166,7 +166,7 @@ $totalUnits = count($units);
                 <select id="unitManager" class="w-full border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30">
                     <option value="">-- Сонгох (заавал биш) --</option>
                     <?php foreach ($employees as $e): ?>
-                        <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name'] . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
+                        <option value="<?= $e['id'] ?>"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name']) . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

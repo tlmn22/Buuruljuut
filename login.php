@@ -47,7 +47,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             session_regenerate_id(true);
             $_SESSION['user_id']          = $user['id'];
             $_SESSION['auth_user_id']     = $user['auth_user_id'];
-            $_SESSION['user_name']        = $user['last_name'] . '. ' . $user['first_name'];
+            $_SESSION['user_name']        = employeeName($user['last_name'], $user['first_name']);
             $_SESSION['user_roles']       = $roles;
             $_SESSION['user_role']        = $roles[0] ?? 'employee';
             $_SESSION['user_code']        = $user['employee_code'];

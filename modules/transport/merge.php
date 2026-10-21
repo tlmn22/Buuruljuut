@@ -125,7 +125,7 @@ function vehicleSummaryLabel(?string $raw): string {
             <tr class="hover:bg-slate-50 dark:hover:bg-[#20242e]">
                 <td class="px-5 py-3"><input type="checkbox" class="reqCheck" value="<?= (int)$r['id'] ?>"></td>
                 <td class="px-4 py-3">
-                    <p class="font-medium"><?= htmlspecialchars($r['requester_last'] . '. ' . $r['requester_first']) ?></p>
+                    <p class="font-medium"><?= htmlspecialchars(employeeName($r['requester_last'], $r['requester_first'])) ?></p>
                 </td>
                 <td class="px-4 py-3"><?= htmlspecialchars($r['travel_direction']) ?></td>
                 <td class="px-4 py-3 text-xs text-slate-500 dark:text-[#8b93a1]"><?= htmlspecialchars($r['start_date']) ?> — <?= htmlspecialchars($r['end_date']) ?></td>

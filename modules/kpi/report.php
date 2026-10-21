@@ -196,7 +196,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/header.php';
             <tr class="<?= $rowClass ?>">
                 <td class="px-2 py-1.5 text-center"><?= $rowNum ?></td>
                 <td class="px-2 py-1.5 text-center"><?= $groupNum ?></td>
-                <td class="px-3 py-1.5 font-medium whitespace-nowrap"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name']) ?><?= $e['position'] ? '<br><span class="text-slate-400 dark:text-[#5a6172] font-normal">' . htmlspecialchars($e['position']) . '</span>' : '' ?></td>
+                <td class="px-3 py-1.5 font-medium whitespace-nowrap"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name'])) ?><?= $e['position'] ? '<br><span class="text-slate-400 dark:text-[#5a6172] font-normal">' . htmlspecialchars($e['position']) . '</span>' : '' ?></td>
                 <td class="px-2 py-1.5 text-center font-mono"><?= htmlspecialchars($e['employee_code']) ?></td>
                 <?php foreach ($monthWorked as $wd): ?><td class="px-2 py-1.5 text-center"><?= $wd ?></td><?php endforeach; ?>
                 <td class="px-2 py-1.5 text-center font-semibold"><?= $workedTotal ?></td>

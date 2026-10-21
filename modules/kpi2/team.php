@@ -57,22 +57,6 @@ if ($selectedPeriodId) {
     $rows = $stmt->fetchAll();
 }
 
-/**
- * DB-ийн төлөвийг загварын төлөв рүү хөрвүүлнэ:
- * none / plan / approve / self-eval / mgr-eval / done.
- * ("returned" — буцаагдсаныг DB тусад нь хадгалдаггүй тул plan-аар харагдана.)
- */
-function kpi2TeamState(array $r): string {
-    if (!$r['eval_id']) return 'none';
-    switch ($r['status']) {
-        case 'planning':          return $r['planning_submitted_at'] ? 'approve' : 'plan';
-        case 'planning_approved': return 'self-eval';
-        case 'self_evaluated':    return 'mgr-eval';
-        case 'completed':         return 'done';
-    }
-    return 'none';
-}
-
 /** Одоогийн алхам хэзээ эхэлснээс хойш өнгөрсөн бүтэн хоног */
 function kpi2DaysSince(?string $ts): ?int {
     if (!$ts) return null;
@@ -115,7 +99,7 @@ function kpi2TeamEmployee(array $r, int $idx, int $myEmployeeId): array {
     $d = function ($ts) { return $ts ? substr($ts, 0, 10) : null; };
     return [
         'idx'    => $idx,
-        'name'   => $r['last_name'] . '. ' . $r['first_name'],
+        'name'   => employeeName($r['last_name'], $r['first_name']),
         'id'     => $r['employee_code'],
         'position' => $r['position'],
         'lead'   => kpi2PositionRank($r['position']) <= 4,

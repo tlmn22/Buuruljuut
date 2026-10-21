@@ -206,7 +206,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                 <span class="text-[#1c2430] dark:text-[#f2f3f6] font-medium">Захиалга #<?= (int)$order['id'] ?></span>
             </nav>
             <h1 class="text-3xl font-bold m-0">Нэгтгэсэн захиалга #<?= (int)$order['id'] ?></h1>
-            <p class="m-0 text-[15px] text-slate-500 dark:text-[#8b93a1]">Тээвэр хариуцсан менежер: <?= htmlspecialchars($order['tm_last'] . '. ' . $order['tm_first']) ?></p>
+            <p class="m-0 text-[15px] text-slate-500 dark:text-[#8b93a1]">Тээвэр хариуцсан менежер: <?= htmlspecialchars(employeeName($order['tm_last'], $order['tm_first'])) ?></p>
         </div>
         <span class="px-3 py-1.5 rounded-full text-sm font-medium <?= TRANSPORT_ORDER_STATUS_COLORS[$order['status']] ?>"><?= TRANSPORT_ORDER_STATUS_LABELS[$order['status']] ?></span>
     </div>
@@ -241,7 +241,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
             <tbody class="divide-y divide-slate-100 dark:divide-[#2a2f3b]" id="linkedReqList">
             <?php foreach ($linkedRequests as $r): ?>
                 <tr data-req-row="<?= (int)$r['id'] ?>">
-                    <td class="py-2.5 pr-3"><a href="<?= BASE_URL ?>/modules/transport/form.php?id=<?= (int)$r['id'] ?>&view=1" class="font-semibold hover:text-[#f1592a] transition-colors"><?= htmlspecialchars($r['last_name'] . '. ' . $r['first_name']) ?></a></td>
+                    <td class="py-2.5 pr-3"><a href="<?= BASE_URL ?>/modules/transport/form.php?id=<?= (int)$r['id'] ?>&view=1" class="font-semibold hover:text-[#f1592a] transition-colors"><?= htmlspecialchars(employeeName($r['last_name'], $r['first_name'])) ?></a></td>
                     <td class="py-2.5 pr-3 text-slate-500 dark:text-[#8b93a1]"><?= htmlspecialchars($r['travel_direction']) ?></td>
                     <td class="py-2.5 pr-3 text-xs text-slate-500 dark:text-[#8b93a1] whitespace-nowrap"><?= htmlspecialchars($r['start_date']) ?> — <?= htmlspecialchars($r['end_date']) ?></td>
                     <td class="py-2.5 pr-3 text-center text-slate-500 dark:text-[#8b93a1]"><?= (int)$r['pax_count'] ?></td>
@@ -267,7 +267,7 @@ html.dark .tr-view-toggle button.on{background:#1c212b;color:#f2f3f6}
                     <label class="tr-item flex-row items-center gap-3 cursor-pointer">
                         <input type="checkbox" class="addReqCheck" value="<?= (int)$r['id'] ?>">
                         <div class="flex-1 min-w-0">
-                            <p class="font-semibold m-0"><?= htmlspecialchars($r['last_name'] . '. ' . $r['first_name']) ?></p>
+                            <p class="font-semibold m-0"><?= htmlspecialchars(employeeName($r['last_name'], $r['first_name'])) ?></p>
                             <p class="text-xs text-slate-500 dark:text-[#8b93a1] m-0"><?= htmlspecialchars($r['travel_direction']) ?> · <?= htmlspecialchars($r['start_date']) ?> — <?= htmlspecialchars($r['end_date']) ?> · <?= (int)$r['pax_count'] ?> зорчигч</p>
                         </div>
                     </label>

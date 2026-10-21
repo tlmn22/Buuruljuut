@@ -54,6 +54,23 @@ function kpi2RecalculateAndSave(PDO $pdo, int $evaluationId): void {
         ->execute([$scores['main'], $scores['bonus'], $scores['total'], $evaluationId]);
 }
 
+/**
+ * DB-ийн төлөвийг статусын загварын төлөв рүү хөрвүүлнэ (Багийн KPI, нүүр хуудас хамтдаа ашиглана):
+ * none / plan / approve / self-eval / mgr-eval / done.
+ * ("returned" — буцаагдсаныг DB тусад нь хадгалдаггүй тул plan-аар харагдана.)
+ * $r: eval_id, status, planning_submitted_at.
+ */
+function kpi2TeamState(array $r): string {
+    if (empty($r['eval_id'])) return 'none';
+    switch ($r['status']) {
+        case 'planning':          return $r['planning_submitted_at'] ? 'approve' : 'plan';
+        case 'planning_approved': return 'self-eval';
+        case 'self_evaluated':    return 'mgr-eval';
+        case 'completed':         return 'done';
+    }
+    return 'none';
+}
+
 const KPI2_SECTION_LABELS = KPI_SECTION_LABELS;
 const KPI2_STATUS_LABELS  = KPI_STATUS_LABELS;
 const KPI2_FREQUENCY_LABELS = KPI_FREQUENCY_LABELS;

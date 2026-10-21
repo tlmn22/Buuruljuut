@@ -105,7 +105,7 @@ $evaluatorOptions = $employees; // хэн ч үнэлэгч байж болно
             <?php foreach ($employees as $e): $isManual = $e['evaluator_source'] === 'manual'; ?>
                 <tr class="border-b border-slate-100 dark:border-[#2a2f3b] eval-row" data-name="<?= strtolower(htmlspecialchars($e['last_name'].' '.$e['first_name'].' '.$e['employee_code'])) ?>">
                     <td class="px-6 py-3">
-                        <p class="font-medium"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name']) ?></p>
+                        <p class="font-medium"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name'])) ?></p>
                         <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($e['position'] ?? '') ?></p>
                     </td>
                     <td class="px-6 py-3 text-slate-500 dark:text-[#8b93a1]"><?= htmlspecialchars($e['unit_name'] ?? '—') ?></td>
@@ -114,7 +114,7 @@ $evaluatorOptions = $employees; // хэн ч үнэлэгч байж болно
                             <option value="">-- Үнэлэгч сонгоогүй --</option>
                             <?php foreach ($evaluatorOptions as $ev): if ($ev['id'] == $e['id']) continue; ?>
                                 <option value="<?= $ev['id'] ?>" <?= (int)$e['default_evaluator_id'] === (int)$ev['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($ev['last_name'] . '. ' . $ev['first_name'] . ($ev['position'] ? ' — ' . $ev['position'] : '')) ?>
+                                    <?= htmlspecialchars(employeeName($ev['last_name'], $ev['first_name']) . ($ev['position'] ? ' — ' . $ev['position'] : '')) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

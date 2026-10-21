@@ -8,8 +8,10 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/db.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/config/auth.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/modules/kpi2/evaluator.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/modules/transport/functions.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/buuruljuut/includes/notifications.php';
 requireLogin();
 $user = currentUser();
+$notifUnread = notificationUnreadCount(getDB(), (int)$user['id']);
 ?>
 <!DOCTYPE html>
 <html lang="mn">
@@ -89,6 +91,9 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
             <nav class="flex-1 px-4 space-y-1 py-4 overflow-y-auto min-h-0">
                 <a href="<?= BASE_URL ?>/dashboard.php" class="flex items-center gap-3 px-4 py-3 <?= ac('dashboard') ?> rounded-lg transition-colors">
                     <span class="material-icons-outlined">home</span>Миний самбар
+                </a>
+                <a href="<?= BASE_URL ?>/modules/news/index.php" class="flex items-center gap-3 px-4 py-3 <?= ac('news') ?> rounded-lg transition-colors">
+                    <span class="material-icons-outlined">campaign</span>Мэдээ мэдээлэл
                 </a>
                 <?php $regOpen = inGroup(['regulations','regulations-admin']); ?>
                 <div class="menu-group">
@@ -257,7 +262,7 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                 <?php endif; ?>
             </nav>
             <div class="p-4 border-t border-[#2a2f3b] flex-shrink-0">
-                <div class="flex items-center gap-3 mb-3">
+                <a href="<?= BASE_URL ?>/profile.php" title="Миний профайл" class="flex items-center gap-3 mb-3 -mx-2 px-2 py-1.5 rounded-lg hover:bg-[#272c38] transition-colors">
                     <?php if ($empPhoto && file_exists(UPLOAD_PATH . $empPhoto)): ?>
                         <img src="<?= UPLOAD_URL . htmlspecialchars($empPhoto) ?>" class="w-9 h-9 rounded-full object-cover border-2 border-[#2a2f3b] flex-shrink-0" />
                     <?php else: ?>
@@ -269,7 +274,7 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         <p class="text-sm font-semibold text-[#f2f3f6] truncate"><?= htmlspecialchars($user['name']) ?></p>
                         <p class="text-xs text-[#8b93a1]"><?= htmlspecialchars($_SESSION['user_position'] ?? roleLabel($user['role'])) ?></p>
                     </div>
-                </div>
+                </a>
                 <a href="<?= BASE_URL ?>/change_password.php" class="w-full flex items-center justify-center gap-2 py-2 mb-2 text-[#a7adba] hover:bg-[#272c38] hover:text-white rounded-lg text-sm font-medium transition-colors">
                     <span class="material-icons-outlined" style="font-size:16px">key</span> Нууц үг солих
                 </a>
@@ -309,12 +314,23 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                         </span>
                         <span class="relative z-10 w-6 h-6 rounded-full bg-white dark:bg-[#f1592a] shadow-sm transition-transform duration-300 dark:translate-x-6"></span>
                     </button>
-                    <button class="p-2 text-slate-200 lg:text-slate-500 lg:dark:text-[#8b93a1] hover:bg-white/10 lg:hover:bg-slate-100 lg:dark:hover:bg-[#272c38] rounded-full relative">
-                        <span class="material-icons-outlined">notifications</span>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-[#f1592a] rounded-full border-2 border-[#1e222c] lg:border-white lg:dark:border-[#1c212b]"></span>
-                    </button>
+                    <!-- 🔔 Мэдэгдэл -->
+                    <div class="relative" id="notifWrap">
+                        <button type="button" onclick="toggleNotif(event)" aria-label="Мэдэгдэл"
+                            class="p-2 text-slate-200 lg:text-slate-500 lg:dark:text-[#8b93a1] hover:bg-white/10 lg:hover:bg-slate-100 lg:dark:hover:bg-[#272c38] rounded-full relative">
+                            <span class="material-icons-outlined">notifications</span>
+                            <span id="notifBadge" class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[#f1592a] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-[#1e222c] lg:border-white lg:dark:border-[#1c212b] <?= $notifUnread ? '' : 'hidden' ?>"><?= $notifUnread > 99 ? '99+' : $notifUnread ?></span>
+                        </button>
+                        <div id="notifPanel" class="hidden absolute right-0 mt-2 w-[min(92vw,380px)] bg-white dark:bg-[#1c212b] border border-slate-200 dark:border-[#2a2f3b] rounded-xl shadow-xl z-50 overflow-hidden">
+                            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-[#2a2f3b]">
+                                <span class="font-semibold text-sm text-[#1c2430] dark:text-[#f2f3f6]">Мэдэгдэл</span>
+                                <button type="button" onclick="readAllNotif()" class="text-xs font-semibold text-[#f1592a] hover:underline">Бүгдийг уншсан</button>
+                            </div>
+                            <div id="notifList" class="max-h-[420px] overflow-y-auto"></div>
+                        </div>
+                    </div>
                     <div class="h-8 w-px bg-white/20 lg:bg-slate-200 lg:dark:bg-[#2a2f3b] mx-1"></div>
-                    <div class="flex items-center gap-2">
+                    <a href="<?= BASE_URL ?>/profile.php" title="Миний профайл" class="flex items-center gap-2 rounded-full hover:opacity-90">
                         <div class="text-right hidden sm:block">
                             <p class="text-sm font-semibold text-white lg:text-[#1c2430] lg:dark:text-[#f2f3f6]"><?= htmlspecialchars($user['name']) ?></p>
                             <p class="text-xs text-white/70 lg:text-[#8b93a1]"><?= htmlspecialchars($_SESSION['user_position'] ?? roleLabel($user['role'])) ?></p>
@@ -327,7 +343,7 @@ function inGroup(array $pages): bool { global $ap; return in_array($ap, $pages);
                                 <?= mb_substr($user['name'], 0, 1) ?>
                             </div>
                         <?php endif; ?>
-                    </div>
+                    </a>
                 </div>
             </header>
             <div class="p-4 lg:p-8 space-y-4 lg:space-y-6">

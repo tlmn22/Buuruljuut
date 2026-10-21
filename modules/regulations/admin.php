@@ -133,7 +133,7 @@ function renderOrgUnitCheckboxes(array $unitsByParent, int $parentId, int $depth
         <?php endif; ?>
         <?php foreach ($managers as $m): ?>
             <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-[#16283a] text-[#1d4e7a] dark:text-[#8ec5f0] rounded-full text-xs font-medium">
-                <?= htmlspecialchars($m['last_name'] . '. ' . $m['first_name']) ?>
+                <?= htmlspecialchars(employeeName($m['last_name'], $m['first_name'])) ?>
                 <button onclick="revokeManager(<?= $m['id'] ?>)" class="hover:text-red-500"><span class="material-icons-outlined" style="font-size:13px">close</span></button>
             </span>
         <?php endforeach; ?>
@@ -142,7 +142,7 @@ function renderOrgUnitCheckboxes(array $unitsByParent, int $parentId, int $depth
         <select id="newManagerEmp" class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm flex-1 max-w-sm focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30">
             <option value="">-- Ажилтан сонгох --</option>
             <?php foreach ($employees as $e): ?>
-                <option value="<?= $e['id'] ?>"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name'] . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
+                <option value="<?= $e['id'] ?>"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name']) . ($e['position'] ? ' — ' . $e['position'] : '')) ?></option>
             <?php endforeach; ?>
         </select>
         <button onclick="grantManager()" class="px-4 py-2 bg-[#1e222c] text-white rounded-lg text-xs font-medium hover:bg-[#2a2f3b]">Томилох</button>
@@ -245,7 +245,7 @@ function renderOrgUnitCheckboxes(array $unitsByParent, int $parentId, int $depth
                     <?php foreach ($viewRows as $row): $e = $row['employee']; ?>
                     <tr class="hover:bg-slate-50 dark:hover:bg-[#20242e]">
                         <td class="px-4 py-3">
-                            <p class="font-medium"><?= htmlspecialchars($e['last_name'] . '. ' . $e['first_name']) ?></p>
+                            <p class="font-medium"><?= htmlspecialchars(employeeName($e['last_name'], $e['first_name'])) ?></p>
                             <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($e['employee_code']) ?> · <?= htmlspecialchars($e['position'] ?? '') ?></p>
                         </td>
                         <td class="px-3 py-3 text-center">

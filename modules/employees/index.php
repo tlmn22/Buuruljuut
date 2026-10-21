@@ -112,7 +112,7 @@ $list = $pdo->query("
                                 </div>
                             <?php endif; ?>
                             <div>
-                                <p class="font-semibold"><?= htmlspecialchars($row['last_name'] . '. ' . $row['first_name']) ?></p>
+                                <p class="font-semibold"><?= htmlspecialchars(employeeName($row['last_name'], $row['first_name'])) ?></p>
                                 <p class="text-xs text-slate-400 dark:text-[#8b93a1]"><?= htmlspecialchars($row['register_number']) ?></p>
                             </div>
                         </div>
@@ -148,7 +148,7 @@ $list = $pdo->query("
                             <span class="material-icons-outlined" style="font-size:18px">edit</span>
                         </button>
                         <?php if ($row['user_id'] && (int)$row['user_id'] !== (int)($_SESSION['auth_user_id'] ?? 0)): ?>
-                        <button onclick="resetPassword(<?= (int)$row['user_id'] ?>, <?= htmlspecialchars(json_encode($row['last_name'] . '. ' . $row['first_name'], JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)"
+                        <button onclick="resetPassword(<?= (int)$row['user_id'] ?>, <?= htmlspecialchars(json_encode(employeeName($row['last_name'], $row['first_name']), JSON_UNESCAPED_UNICODE), ENT_QUOTES) ?>)"
                                 title="Нууц үг сэргээх"
                                 class="inline-flex p-2 text-slate-500 dark:text-[#8b93a1] hover:bg-slate-100 dark:hover:bg-[#272c38] rounded-lg transition-colors">
                             <span class="material-icons-outlined" style="font-size:18px">lock_reset</span>
