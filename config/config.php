@@ -1,4 +1,7 @@
 <?php
+// PHP-ийн цагийг MySQL-ийн (Asia/Ulaanbaatar, +08:00) цагтай тааруулна — date()/time() ба NOW() ижил байх ёстой
+date_default_timezone_set('Asia/Ulaanbaatar');
+
 define('APP_NAME', 'KPI Систем');
 define('APP_VERSION', '1.0');
 

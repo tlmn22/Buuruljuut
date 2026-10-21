@@ -11,26 +11,32 @@ $pdo = getDB();
 $me  = currentUser();
 $myEmployeeId = (int)$me['id'];
 
-$unitsById = regulationsOrgUnitsById($pdo);
-
 $categories = $pdo->query("SELECT * FROM regulation_categories ORDER BY sort_order, name")->fetchAll();
 
-// Бүх ажилтан бүх идэвхтэй журмыг харна — хамаарах нэгжийн сонголт нь ЗӨВХӨН аль хэлтэст
-// хамаарахыг илэрхийлэх шошго, харах эрхийг хязгаарлахгүй.
+// Бүх ажилтан бүх идэвхтэй журмыг харна
 $stmt = $pdo->prepare("
     SELECT r.*, c.name AS category_name,
-           (SELECT COUNT(*) FROM regulation_reads rr WHERE rr.regulation_id = r.id AND rr.employee_id = ?) AS my_read
+           (SELECT MAX(rr.read_at) FROM regulation_reads rr WHERE rr.regulation_id = r.id AND rr.employee_id = ?) AS my_read_at
     FROM regulations r
     LEFT JOIN regulation_categories c ON c.id = r.category_id
     WHERE r.is_active = 1
-    ORDER BY c.sort_order, c.name, r.approved_date DESC, r.title
+    ORDER BY c.sort_order IS NULL, c.sort_order, c.name, r.approved_date DESC, r.title
 ");
 $stmt->execute([$myEmployeeId]);
 $regs = $stmt->fetchAll();
 
-$orgUnitMap = regulationsOrgUnitMap($pdo);
+// Ангиллаар бүлэглэх
+$groups = [];
+foreach ($regs as $r) $groups[$r['category_name'] ?? 'Ангилалгүй'][] = $r;
+
+$required = array_filter($regs, function ($r) { return $r['require_ack']; });
+$requiredRead = count(array_filter($required, function ($r) { return $r['my_read_at']; }));
+$requiredLeft = count($required) - $requiredRead;
+$pct = $required ? round($requiredRead / count($required) * 100) : 100;
 
 $canManage = hasPermission('regulations.manage');
+$card = 'bg-white dark:bg-[#1c212b] border border-slate-200 dark:border-[#2a2f3b] rounded-xl shadow-sm';
+$pill = 'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors';
 ?>
 
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -44,114 +50,158 @@ $canManage = hasPermission('regulations.manage');
     </div>
     <?php if ($canManage): ?>
     <a href="<?= BASE_URL ?>/modules/regulations/admin.php"
-       class="bg-[#f1592a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 hover:bg-[#c33e12] transition-colors shadow-lg shadow-orange-100 dark:shadow-none">
+       class="bg-[#f1592a] text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 hover:bg-[#c33e12] transition-colors">
         <span class="material-icons-outlined text-sm">admin_panel_settings</span> Удирдах
     </a>
     <?php endif; ?>
 </div>
 
-<div class="bg-white dark:bg-[#1c212b] border border-slate-200 dark:border-[#2a2f3b] rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3">
-    <span class="material-icons-outlined text-slate-400 dark:text-[#8b93a1]">search</span>
-    <input type="text" id="filterSearch" onkeyup="filterTable()" placeholder="Гарчиг, ангиллаар хайх..."
-           class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30"/>
-    <select id="filterCategory" onchange="filterTable()"
-            class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30">
-        <option value="">Бүх ангилал</option>
-        <?php foreach ($categories as $c): ?>
-            <option value="<?= htmlspecialchars(mb_strtolower($c['name'])) ?>"><?= htmlspecialchars($c['name']) ?></option>
-        <?php endforeach; ?>
-    </select>
-    <span class="text-sm text-slate-400 dark:text-[#8b93a1] ml-auto">Нийт: <strong id="rowCount"><?= count($regs) ?></strong> баримт</span>
+<!-- Танилцах явц -->
+<?php if ($required): ?>
+<div class="<?= $card ?> p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+    <span class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 <?= $requiredLeft ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400' : 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400' ?>">
+        <span class="material-icons-outlined"><?= $requiredLeft ? 'assignment_late' : 'task_alt' ?></span>
+    </span>
+    <div class="flex-1 min-w-0">
+        <p class="font-semibold" id="ackTitle">
+            <?= $requiredLeft ? $requiredLeft . ' журамтай танилцах шаардлагатай байна' : 'Заавал танилцах бүх журамтай танилцсан байна' ?>
+        </p>
+        <div class="flex items-center gap-3 mt-2">
+            <div class="flex-1 h-2 bg-slate-100 dark:bg-[#272c38] rounded-full overflow-hidden">
+                <div id="ackBar" class="h-full rounded-full <?= $requiredLeft ? 'bg-[#f1592a]' : 'bg-green-500' ?>" style="width:<?= $pct ?>%"></div>
+            </div>
+            <span class="text-sm text-slate-500 dark:text-[#8b93a1] whitespace-nowrap"><b id="ackRead" class="text-[#1c2430] dark:text-[#f2f3f6]"><?= $requiredRead ?></b> / <?= count($required) ?> үзсэн</span>
+        </div>
+    </div>
+    <?php if ($requiredLeft): ?>
+    <button type="button" onclick="setStatus('todo')" class="px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 dark:border-[#2a2f3b] hover:bg-slate-50 dark:hover:bg-[#272c38] whitespace-nowrap">Үзээгүйг харах</button>
+    <?php endif; ?>
 </div>
+<?php endif; ?>
 
-<div class="bg-white dark:bg-[#1c212b] rounded-xl border border-slate-200 dark:border-[#2a2f3b] shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="bg-slate-50 dark:bg-[#14171f] border-b border-slate-200 dark:border-[#2a2f3b]">
-                    <th class="text-center px-4 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">№</th>
-                    <th class="text-left px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Гарчиг</th>
-                    <th class="text-left px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Ангилал</th>
-                    <th class="text-left px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Хамаарах нэгж</th>
-                    <th class="text-left px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Батлагдсан огноо</th>
-                    <th class="text-center px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Таны төлөв</th>
-                    <th class="text-right px-6 py-4 font-semibold text-slate-500 dark:text-[#8b93a1] uppercase text-xs tracking-wider">Үйлдэл</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php if (empty($regs)): ?>
-                <tr><td colspan="7" class="text-center py-16 text-slate-400 dark:text-[#5a6172]">
-                    <span class="material-icons-outlined block mb-3" style="font-size:48px">menu_book</span>Танд харагдах дүрэм журам одоогоор байхгүй байна
-                </td></tr>
-            <?php else: foreach ($regs as $i => $r): $isRead = (int)$r['my_read'] > 0; ?>
-                <tr class="border-b border-slate-100 dark:border-[#2a2f3b] hover:bg-slate-50 dark:hover:bg-[#20242e] transition-colors table-row"
-                    data-name="<?= mb_strtolower(htmlspecialchars($r['title'] . ' ' . ($r['category_name'] ?? ''))) ?>"
-                    data-category="<?= mb_strtolower(htmlspecialchars($r['category_name'] ?? '')) ?>">
-                    <td class="px-4 py-4 text-center text-slate-400 dark:text-[#5a6172] row-num"><?= $i + 1 ?></td>
-                    <td class="px-6 py-4">
-                        <p class="font-medium"><?= htmlspecialchars($r['title']) ?></p>
-                        <?php if ($r['require_ack']): ?>
-                            <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-full text-xs font-medium">
-                                <span class="material-icons-outlined" style="font-size:12px">priority_high</span> Заавал танилцах
-                            </span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4">
-                        <?php if ($r['category_name']): ?>
-                            <span class="inline-flex items-center px-2.5 py-1 bg-purple-50 dark:bg-[#272c38] text-purple-600 dark:text-[#c9a8ff] rounded-full text-xs font-medium"><?= htmlspecialchars($r['category_name']) ?></span>
-                        <?php else: ?><span class="text-slate-400 dark:text-[#5a6172]">—</span><?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4">
-                        <?php $regUnitIds = $orgUnitMap[(int)$r['id']] ?? []; ?>
-                        <?php if ($regUnitIds): ?>
-                            <div class="flex flex-wrap gap-1 max-w-xs">
-                                <?php foreach ($regUnitIds as $uid): ?>
-                                    <span class="inline-flex items-center px-2 py-0.5 bg-blue-50 dark:bg-[#16283a] text-[#1d4e7a] dark:text-[#8ec5f0] rounded-full text-xs font-medium"><?= htmlspecialchars($unitsById[$uid]['name'] ?? '') ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?><span class="text-slate-400 dark:text-[#5a6172] text-xs">Бүх компани</span><?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4 text-slate-600 dark:text-[#c9cdd6]"><?= $r['approved_date'] ? htmlspecialchars($r['approved_date']) : '—' ?></td>
-                    <td class="px-6 py-4 text-center">
-                        <?php if ($isRead): ?>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 rounded-full text-xs font-medium"><span class="material-icons-outlined" style="font-size:14px">check_circle</span> Үзсэн</span>
-                        <?php elseif ($r['require_ack']): ?>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full text-xs font-medium"><span class="material-icons-outlined" style="font-size:14px">error_outline</span> Үзээгүй</span>
-                        <?php else: ?>
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-[#272c38] text-slate-500 dark:text-[#8b93a1] rounded-full text-xs font-medium">Үзээгүй</span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <a href="<?= REGULATIONS_UPLOAD_URL . htmlspecialchars($r['file_path']) ?>" target="_blank"
-                           onclick="markRead(<?= $r['id'] ?>)"
-                           class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#f1592a] text-white rounded-lg text-xs font-medium hover:bg-[#c33e12] transition-colors">
-                            <span class="material-icons-outlined" style="font-size:14px">picture_as_pdf</span> Үзэх
-                        </a>
-                    </td>
-                </tr>
-            <?php endforeach; endif; ?>
-            </tbody>
-        </table>
+<!-- Шүүлтүүр -->
+<div class="<?= $card ?> p-3 flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap gap-1" id="catPills">
+        <button type="button" data-cat="" class="cat-pill <?= $pill ?> bg-[#f1592a] text-white">Бүгд</button>
+        <?php foreach ($categories as $c): ?>
+            <button type="button" data-cat="<?= htmlspecialchars(mb_strtolower($c['name'])) ?>" class="cat-pill <?= $pill ?> text-slate-600 dark:text-[#c9cdd6] hover:bg-slate-100 dark:hover:bg-[#272c38]"><?= htmlspecialchars($c['name']) ?></button>
+        <?php endforeach; ?>
+    </div>
+    <div class="flex items-center gap-2 ml-auto flex-wrap">
+        <select id="filterStatus" onchange="applyFilters()" class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30">
+            <option value="">Бүх төлөв</option>
+            <option value="todo">Үзээгүй</option>
+            <option value="required">Заавал танилцах</option>
+            <option value="read">Үзсэн</option>
+        </select>
+        <div class="relative">
+            <span class="material-icons-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" style="font-size:18px">search</span>
+            <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Журам хайх..."
+                   class="border border-slate-200 dark:border-[#2a2f3b] dark:bg-[#272c38] rounded-lg pl-9 pr-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-[#f1592a]/30">
+        </div>
     </div>
 </div>
 
+<?php if (!$regs): ?>
+    <div class="<?= $card ?> p-16 text-center text-slate-400 dark:text-[#5a6172]">
+        <span class="material-icons-outlined block mb-3" style="font-size:48px">menu_book</span>
+        Одоогоор дүрэм журам байршуулаагүй байна.
+    </div>
+<?php else: ?>
+<div id="regGroups" class="space-y-6">
+    <?php foreach ($groups as $catName => $items): ?>
+    <section class="reg-group">
+        <h2 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-[#8b93a1] mb-3">
+            <?= htmlspecialchars($catName) ?> <span class="group-count px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#272c38] text-xs normal-case tracking-normal"><?= count($items) ?></span>
+        </h2>
+        <div class="<?= $card ?> divide-y divide-slate-100 dark:divide-[#2a2f3b] overflow-hidden">
+            <?php foreach ($items as $r):
+                $isRead = (bool)$r['my_read_at'];
+                $status = $isRead ? 'read' : 'todo'; ?>
+            <div class="reg-item flex flex-col sm:flex-row sm:items-center gap-4 p-5 hover:bg-slate-50 dark:hover:bg-[#20242e] transition-colors <?= !$isRead && $r['require_ack'] ? 'border-l-4 border-l-[#f1592a]' : '' ?>"
+                 data-id="<?= (int)$r['id'] ?>"
+                 data-name="<?= htmlspecialchars(mb_strtolower($r['title'] . ' ' . ($r['description'] ?? '') . ' ' . ($r['category_name'] ?? ''))) ?>"
+                 data-category="<?= htmlspecialchars(mb_strtolower($r['category_name'] ?? '')) ?>"
+                 data-status="<?= $status ?>" data-required="<?= $r['require_ack'] ? 1 : 0 ?>">
+                <span class="w-11 h-11 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                    <span class="material-icons-outlined">picture_as_pdf</span>
+                </span>
+                <div class="flex-1 min-w-0">
+                    <p class="font-semibold leading-snug"><?= htmlspecialchars($r['title']) ?></p>
+                    <?php if (!empty($r['description'])): ?>
+                        <p class="text-sm text-slate-500 dark:text-[#8b93a1] mt-1 line-clamp-2"><?= htmlspecialchars($r['description']) ?></p>
+                    <?php endif; ?>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-slate-400 dark:text-[#8b93a1]">
+                        <?php if ($r['approved_date']): ?><span class="flex items-center gap-1"><span class="material-icons-outlined" style="font-size:14px">event</span>Батлагдсан <?= date('Y.m.d', strtotime($r['approved_date'])) ?></span><?php endif; ?>
+                        <?php if ($r['require_ack']): ?><span class="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"><span class="material-icons-outlined" style="font-size:14px">priority_high</span>Заавал танилцах</span><?php endif; ?>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 sm:flex-shrink-0">
+                    <span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap
+                        <?= $isRead ? 'bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400' : ($r['require_ack'] ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-[#272c38] text-slate-500 dark:text-[#8b93a1]') ?>"
+                        title="<?= $isRead ? 'Үзсэн: ' . htmlspecialchars(date('Y.m.d H:i', strtotime($r['my_read_at']))) : '' ?>">
+                        <span class="material-icons-outlined" style="font-size:14px"><?= $isRead ? 'check_circle' : 'radio_button_unchecked' ?></span><?= $isRead ? 'Үзсэн' : 'Үзээгүй' ?>
+                    </span>
+                    <a href="<?= REGULATIONS_UPLOAD_URL . htmlspecialchars($r['file_path']) ?>" target="_blank" rel="noopener"
+                       onclick="markRead(<?= (int)$r['id'] ?>)"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#f1592a] text-white rounded-lg text-sm font-medium hover:bg-[#c33e12] transition-colors">
+                        <span class="material-icons-outlined" style="font-size:16px">open_in_new</span> Үзэх
+                    </a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endforeach; ?>
+    <div id="emptyFilter" class="hidden <?= $card ?> p-12 text-center text-sm text-slate-400 dark:text-[#5a6172]">Шүүлтүүрт тохирох журам олдсонгүй.</div>
+</div>
+<?php endif; ?>
+
 <script>
+var activeCat = '';
+var REQUIRED_TOTAL = <?= count($required) ?>;
+
+// Үзэх дарахад "Үзсэн" болгож бүртгэнэ (хуудас дахин ачаалахгүй)
 function markRead(id) {
-    $.post('<?= BASE_URL ?>/modules/regulations/ajax.php', { action: 'mark_read', id });
+    $.post('<?= BASE_URL ?>/modules/regulations/ajax.php', { action: 'mark_read', id: id });
+    var $item = $('.reg-item[data-id="' + id + '"]');
+    if ($item.attr('data-status') === 'read') return;
+    $item.attr('data-status', 'read').removeClass('border-l-4 border-l-[#f1592a]');
+    $item.find('.status-badge').attr('class', 'status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400')
+        .html('<span class="material-icons-outlined" style="font-size:14px">check_circle</span>Үзсэн');
+    if ($item.attr('data-required') === '1' && REQUIRED_TOTAL) {
+        var read = $('.reg-item[data-required="1"][data-status="read"]').length, left = REQUIRED_TOTAL - read;
+        $('#ackRead').text(read);
+        $('#ackBar').css('width', Math.round(read / REQUIRED_TOTAL * 100) + '%').toggleClass('bg-green-500', !left).toggleClass('bg-[#f1592a]', !!left);
+        $('#ackTitle').text(left ? left + ' журамтай танилцах шаардлагатай байна' : 'Заавал танилцах бүх журамтай танилцсан байна');
+    }
 }
 
-function filterTable() {
-    const s = $('#filterSearch').val().toLowerCase();
-    const cat = $('#filterCategory').val();
-    let n = 0;
-    $('.table-row').each(function () {
-        const nameMatch = !s || $(this).data('name').includes(s);
-        const catMatch = !cat || $(this).data('category') === cat;
-        const match = nameMatch && catMatch;
-        $(this).toggle(match);
-        if (match) { n++; $(this).find('.row-num').text(n); }
+function setStatus(v) { $('#filterStatus').val(v); applyFilters(); }
+
+$('#catPills').on('click', '.cat-pill', function () {
+    activeCat = this.dataset.cat;
+    $('.cat-pill').removeClass('bg-[#f1592a] text-white').addClass('text-slate-600 dark:text-[#c9cdd6] hover:bg-slate-100 dark:hover:bg-[#272c38]');
+    $(this).addClass('bg-[#f1592a] text-white').removeClass('text-slate-600 dark:text-[#c9cdd6] hover:bg-slate-100 dark:hover:bg-[#272c38]');
+    applyFilters();
+});
+
+function applyFilters() {
+    var q = $('#filterSearch').val().toLowerCase().trim(), status = $('#filterStatus').val(), shown = 0;
+    $('.reg-group').each(function () {
+        var n = 0;
+        $(this).find('.reg-item').each(function () {
+            var d = this.dataset;
+            var ok = (!q || d.name.indexOf(q) !== -1)
+                && (!activeCat || d.category === activeCat)
+                && (!status || (status === 'required' ? d.required === '1' : d.status === status));
+            $(this).toggleClass('hidden', !ok);
+            if (ok) n++;
+        });
+        $(this).toggleClass('hidden', !n).find('.group-count').text(n);
+        shown += n;
     });
-    $('#rowCount').text(n);
+    $('#emptyFilter').toggleClass('hidden', shown > 0);
 }
 </script>
 

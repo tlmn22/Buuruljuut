@@ -5,6 +5,7 @@ uploads/
 import.sql
 intranet.sql
 buuruljuut.sql
+employees_import*.sql
 
 # Excel эх файлууд (магадгүй бодит ажилтны/цалингийн өгөгдөлтэй)
 *.xlsx
