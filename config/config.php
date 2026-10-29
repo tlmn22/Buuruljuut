@@ -35,3 +35,6 @@ function employeeName(?string $lastName, ?string $firstName): string {
     if ($last === '') return $first;
     return mb_strtoupper(mb_substr($last, 0, 1, 'UTF-8'), 'UTF-8') . '. ' . $first;
 }
+
+define('MEETINGROOM_UPLOAD_PATH', __DIR__ . '/../uploads/meetingroom/');
+define('MEETINGROOM_UPLOAD_URL', BASE_URL . '/uploads/meetingroom/');

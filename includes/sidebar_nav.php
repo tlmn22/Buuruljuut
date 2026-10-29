@@ -12,12 +12,16 @@
         class="flex items-center gap-3 px-4 py-3 <?= ac('news') ?> rounded-lg transition-colors">
         <span class="material-icons-outlined">campaign</span>Мэдээ мэдээлэл
     </a>
+    <a href="<?= BASE_URL ?>/modules/meetingroom/index.php"
+        class="flex items-center gap-3 px-4 py-3 <?= ($activePage ?? '') === 'meetingroom-admin' ? ac('meetingroom-admin') : ac('meetingroom') ?> rounded-lg transition-colors">
+        <span class="material-icons-outlined">meeting_room</span>Хурлын өрөө
+    </a>
     <?php $regOpen = inGroup(['regulations','regulations-admin']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $regOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">menu_book</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $regOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">menu_book</span>
                 <span>Дүрэм журам</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $regOpen ? 'rotate-180' : '' ?>">expand_more</span>
@@ -40,9 +44,9 @@
     <?php $benefitsOpen = inGroup(['onefit', 'onefit-admin']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $benefitsOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">card_giftcard</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $benefitsOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">card_giftcard</span>
                 <span>Benefits</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $benefitsOpen ? 'rotate-180' : '' ?>">expand_more</span>
@@ -65,9 +69,9 @@
     <?php $selfOpen = inGroup(['self-service']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $selfOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">manage_accounts</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $selfOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">manage_accounts</span>
                 <span>Self Service</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $selfOpen ? 'rotate-180' : '' ?>">expand_more</span>
@@ -85,9 +89,9 @@
     <?php $kpiOpen = inGroup(['kpi', 'kpi-team', 'kpi-admin', 'kpi-report']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $kpiOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">leaderboard</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $kpiOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">leaderboard</span>
                 <span>KPI</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $kpiOpen ? 'rotate-180' : '' ?>">expand_more</span>
@@ -128,9 +132,9 @@
     ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $kpi2Open ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">insights</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $kpi2Open ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">insights</span>
                 <span>KPI</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $kpi2Open ? 'rotate-180' : '' ?>">expand_more</span>
@@ -181,9 +185,9 @@
     ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $transportOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">local_shipping</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $transportOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">local_shipping</span>
                 <span>Тээврийн захиалга</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $transportOpen ? 'rotate-180' : '' ?>">expand_more</span>
@@ -219,9 +223,9 @@
     <?php $adminOpen = inGroup(['org_units', 'employees']); ?>
     <div class="menu-group">
         <button onclick="toggleGroup(this)"
-            class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors <?= $adminOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
-            <div class="flex items-center gap-3">
-                <span class="material-icons-outlined">admin_panel_settings</span>
+            class="w-full flex items-center justify-between gap-2 text-left px-4 py-3 rounded-lg transition-colors <?= $adminOpen ? 'bg-[#f1592a] text-white font-semibold' : 'text-[#a7adba] hover:bg-[#2a2f3b] hover:text-white' ?>">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="material-icons-outlined flex-shrink-0">admin_panel_settings</span>
                 <span>Удирдлага</span>
             </div>
             <span class="material-icons-outlined accordion-arrow text-sm transition-transform duration-200 <?= $adminOpen ? 'rotate-180' : '' ?>">expand_more</span>

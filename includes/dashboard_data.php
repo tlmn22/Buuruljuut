@@ -160,6 +160,21 @@ function dashTodos(PDO $pdo, int $me, array $kpi, ?string $employeeCode): array 
         if ($n) $add('merge_type', "$n тээврийн хүсэлт нэгтгэж захиалга үүсгэх", 'Тээвэр хариуцсан менежерийн хувьд', BASE_URL . '/modules/transport/merge.php');
     }
 
+    // ── Хурлын өрөө: хариуцагч — батлах захиалга; бүгд — өнөөдрийн миний хурал ──
+    $isMrManager = isSuperAdmin() || $one("SELECT COUNT(*) FROM meetingroom_managers WHERE employee_id = ?", [$me]);
+    if ($isMrManager) {
+        $n = $one("SELECT COUNT(DISTINCT COALESCE(recurrence_group, id)) FROM meetingroom_bookings WHERE status = 'pending' AND start_dt >= NOW()");
+        if ($n) $add('meeting_room', "$n хурлын өрөөний захиалга батлах", 'Хурлын өрөөний хариуцагчийн хувьд', BASE_URL . '/modules/meetingroom/admin.php');
+    }
+    $s = $pdo->prepare("SELECT b.start_dt, b.end_dt, b.title, b.room_id, r.name FROM meetingroom_bookings b JOIN meetingroom_rooms r ON r.id = b.room_id
+                        WHERE b.requested_by = ? AND b.status = 'approved' AND DATE(b.start_dt) = CURDATE() AND b.end_dt >= NOW() ORDER BY b.start_dt");
+    $s->execute([$me]);
+    foreach ($s->fetchAll(PDO::FETCH_ASSOC) as $m) {
+        $add('event', 'Өнөөдөр ' . date('H:i', strtotime($m['start_dt'])) . '-д хурал: ' . ($m['title'] ?: $m['name']),
+             $m['name'] . ' · ' . date('H:i', strtotime($m['start_dt'])) . '–' . date('H:i', strtotime($m['end_dt'])),
+             BASE_URL . '/modules/meetingroom/index.php?room=' . (int)$m['room_id'], 'info');
+    }
+
     // ── OneFit: бүртгэл нээлттэй, бүртгүүлээгүй ──
     $period = $pdo->query("SELECT * FROM onefitoid WHERE Status = 1 ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
     if ($period && $employeeCode) {
